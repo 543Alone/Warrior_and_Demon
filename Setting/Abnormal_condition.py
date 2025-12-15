@@ -50,7 +50,16 @@ def noise():
     print("   🔊 攻击音效")
 
 
-def Excalibur(attacker):
+def Excalibur(attacker, defender):
+    """
+
+    :param attacker: 攻击者对象
+    :param defender: 防守者对象
+    :return: 攻击伤害
+    """
+    base_atk = attacker.get('weapon', {}).get('atk', 0)
+    weapon_effect = attacker.get('weapon', {}).get('effect', '')
+    enemy_name = defender.get('name', '')
     # 如果对方是魔王并且武器的“effect” == demon_slayer_multiplier_2.5，伤害就是2.5倍
-    if attacker['enemy']['name'] == '魔王' and attacker['weapon']['effect'] == 'demon_slayer_multiplier_2.5':
-        attacker['weapon']['atk'] *= 2.5
+    if enemy_name == '魔王' and weapon_effect == 'demon_slayer_multiplier_2.5':
+        return base_atk * 2.5
