@@ -10,20 +10,37 @@
 # 定义位置
 world_map = {
     "新手村": {
-        "desc": "安全和平的小村庄，可以休息回血。",
+        "desc": "安全区。",
         "connects_to": ["幽暗森林"],
-        "safe_zone": True  # 安全区，不会遇怪
+        "safe_zone": True
     },
     "幽暗森林": {
-        "desc": "光线昏暗的森林，随处可见哥布林和史莱姆。",
-        "connects_to": ["新手村", "魔王城"],
+        "desc": "阴森的森林，适合新手练级。",
+        "connects_to": ["新手村", "水晶矿洞", "冰封山谷"], # 连接增加了
         "safe_zone": False,
-        "danger_level": 0.4  # 40% 几率遇怪
+        "spawn_table": "幽暗森林"  # 对应 monster_distribution 的 key
+    },
+    "水晶矿洞": {
+        "desc": "充满了魔法水晶和深渊气息。",
+        "connects_to": ["幽暗森林", "雷鸣废墟"],
+        "safe_zone": False,
+        "spawn_table": "水晶矿洞"
+    },
+    "冰封山谷": {
+        "desc": "寒风刺骨，据说湖中女神沉睡于此。",
+        "connects_to": ["幽暗森林", "魔王城"],
+        "safe_zone": False,
+        "spawn_table": "冰封山谷"
+    },
+    "雷鸣废墟": {
+        "desc": "充满了危险的雷电。",
+        "connects_to": ["水晶矿洞", "魔王城"],
+        "safe_zone": False,
+        "spawn_table": "雷鸣废墟"
     },
     "魔王城": {
-        "desc": "最终决战之地，空气中弥漫着硫磺味。",
-        "connects_to": ["幽暗森林"],
-        "safe_zone": False,
-        "is_boss_room": True  # 只有Boss
+        "desc": "BOSS战之地。",
+        "connects_to": ["冰封山谷", "雷鸣废墟"],
+        "is_boss_room": True
     }
 }
