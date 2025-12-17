@@ -8,16 +8,16 @@
 """
 import random
 
-from Battle.Battle_Monster import start_battle, GAME_CONFIG
-from Characters_intro import Relo
-from Characters_intro.Relo import hero, demon, current_weapon, current_armor
-from Monsters.Monsters import monsters_list
-from Place.Map_A import world_map
-from Setting.Menu import equip_menu
-from Setting.Style import Colors
-from Place.Hover import wander_action
-from Battle.Death_penalty import Death_enalty
-from Setting.Use_items import use_item
+from RPG.Battle.Battle_Monster import start_battle, GAME_CONFIG
+from RPG.Characters_intro import Relo
+from RPG.Characters_intro.Relo import hero
+from RPG.Monsters.Monsters import monsters_list
+from RPG.Place.Map_A import world_map
+from RPG.Setting.Menu import equip_menu
+from RPG.Setting.Style import Colors
+from RPG.Place.Hover import wander_action
+from RPG.Battle.Death_penalty import Death_enalty
+from RPG.Setting.Use_items import use_item
 
 
 # 定义战斗

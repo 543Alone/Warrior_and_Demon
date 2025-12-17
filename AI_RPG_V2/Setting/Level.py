@@ -6,7 +6,7 @@
 @Author  ：Write Bug
 @Date    ：2025/12/11 13:22 
 """
-from Battle.Attack import GAME_CONFIG, Colors
+from RPG.Battle.Attack import GAME_CONFIG, Colors
 
 
 def check_level_up(player):

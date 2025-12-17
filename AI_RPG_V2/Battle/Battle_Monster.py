@@ -9,13 +9,12 @@
 import random
 import time
 
-from Battle.Attack import attack_logic, GAME_CONFIG
-from Characters_intro.Bag import get_item_data_by_name
-from Characters_intro import Relo
-from Setting.Style import Colors, show_health_bar
-from Setting.Level import check_level_up
-from Setting.Abnormal_condition import process_damage
-from Setting.Use_items import use_item
+from RPG.Battle.Attack import attack_logic, GAME_CONFIG
+from RPG.Characters_intro.Bag import get_item_data_by_name
+from RPG.Setting.Style import Colors, show_health_bar
+from RPG.Setting.Level import check_level_up
+from RPG.Setting.Abnormal_condition import process_damage
+from RPG.Setting.Use_items import use_item
 
 
 # 定义战斗

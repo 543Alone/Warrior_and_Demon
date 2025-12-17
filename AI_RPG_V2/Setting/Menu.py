@@ -6,7 +6,7 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 15:11
 """
-from Characters_intro import Relo
+from RPG.Characters_intro import Relo
 
 
 def equip_menu(player):

@@ -8,8 +8,8 @@
 """
 import time
 
-from Characters_intro import Relo
-from Characters_intro.Relo import hero
+from RPG.Characters_intro import Relo
+from RPG.Characters_intro.Relo import hero
 
 
 def Death_enalty():

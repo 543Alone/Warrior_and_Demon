@@ -8,8 +8,8 @@
 """
 import random
 
-from Setting.Style import Colors
-from Setting.Abnormal_condition import apply_burn_effect, apply_hemophagia_effect
+from RPG.Setting.Style import Colors
+from RPG.Setting.Abnormal_condition import apply_burn_effect, apply_hemophagia_effect
 
 # 定义全局超参
 GAME_CONFIG = {

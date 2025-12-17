@@ -6,9 +6,9 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 17:02 
 """
-from Warehouse.Weapons import weapons_list
-from Warehouse.Armor import armors_list
-from Warehouse.Items import items_list
+from RPG.Warehouse.Weapons import weapons_list
+from RPG.Warehouse.Armor import armors_list
+from RPG.Warehouse.Items import items_list
 
 
 def get_item_data_by_name(item_name):

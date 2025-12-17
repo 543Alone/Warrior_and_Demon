@@ -9,12 +9,12 @@
 import random
 import time
 
-from Battle.Battle_Monster import start_battle
-from Battle.Death_penalty import Death_enalty
-from Characters_intro import Relo
-from Characters_intro.Bag import get_item_data_by_name
-from Monsters.Monsters import monsters_list
-from Place.Map_A import world_map
+from RPG.Battle.Battle_Monster import start_battle
+from RPG.Battle.Death_penalty import Death_enalty
+from RPG.Characters_intro import Relo
+from RPG.Characters_intro.Bag import get_item_data_by_name
+from RPG.Monsters.Monsters import monsters_list
+from RPG.Place.Map_A import world_map
 
 
 def wander_action(player):

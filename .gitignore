@@ -1,0 +1,20 @@
+# --- JetBrains IDE (IntelliJ, PyCharm, etc.) ---
+# 忽略整个 .idea 文件夹（包含 xml 配置、主题设置等）
+.env
+.idea/
+
+# 忽略模块文件
+*.iml
+*.iws
+*.ipr
+
+# 忽略构建输出目录 (如果是 Java/Kotlin 项目通常会有这些)
+out/
+build/
+
+# --- 操作系统生成的文件 ---
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
