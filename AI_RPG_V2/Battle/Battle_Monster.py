@@ -13,7 +13,7 @@ from langchain_core.messages import HumanMessage
 
 from AI_RPG_V2.Model.AI_Narrator import narrate_battle, llm
 from Battle.Attack import attack_logic, GAME_CONFIG
-from Characters_intro.Bag import get_item_data_by_name
+from Characters_intro.Bag import get_item_data_by_name, add_item_to_bag
 from Setting.Style import Colors, show_health_bar
 from Setting.Level import check_level_up
 from Setting.Abnormal_condition import process_damage
@@ -40,9 +40,6 @@ def start_battle(player, enemy_template, current_weapon):
         show_health_bar(player)
         show_health_bar(enemy)
 
-        # ==========================================
-        # 👇👇👇 这里变成了手动选择 👇👇👇
-        # ==========================================
         print(f"\n{Colors.CYAN}[你的回合] 请选择行动：{Colors.END}")
         print("1. ⚔️ 攻击 (Attack)")
         print("2. 🎒 物品 (Item)")
@@ -55,18 +52,24 @@ def start_battle(player, enemy_template, current_weapon):
         # --- 选项 1: 攻击 ---
         if action == "1":
             logs = attack_logic(player, enemy, current_weapon)
-            print(f"\n[系统日志]:\n{logs}")
-            print(f"\n🤖 AI 正在构思战斗画面...", end="", flush=True)
-
+            # print(f"\n[系统日志]:\n{logs}")
             # 调用AI
             story = narrate_battle(logs)
-            print(f"\n{Colors.YELLOW}📝 战斗描写:\n{story}{Colors.END}\n")
             # 保留原始数据供调试
             # print(f"[系统原始数据]:\n{logs}")
             player_acted = True
 
         # --- 选项 2: 使用物品 ---
         elif action == "2":
+            # 查看当前持续的Buff
+            if 'buffs' in player and player['buffs']:
+                print(f"\n✨ 当前激活的状态 (Buffs):")
+                for buff in player['buffs']:
+                    # 显示名称、数值和剩余回合
+                    # 比如：力量药剂: +10 (剩余 3 回合)
+                    print(f"   🔥 {buff['name']}: +{buff.get('value', 0)} (剩余 {buff['duration']} 回合)")
+            else:
+                print(f"\n✨ 当前无增益状态")
             if not player['bag']:
                 print("   (背包空空如也，浪费了一次查看机会)")
             else:
@@ -79,6 +82,13 @@ def start_battle(player, enemy_template, current_weapon):
                     elif item.get('type', '').startswith('buff'):
                         tag = "(Buff药)"
                     print(f"   [{i}] {item['name']} {tag}")
+
+                    qty = item.get('quantity', 1)
+                    # 如果数量大于 1，就显示 xN，否则不显示
+                    qty_str = f" x{qty}" if qty > 1 else ""
+
+                    # 把 qty_str 加到 print 里
+                    print(f"   [{i}] {item['name']}{qty_str} {tag}")
 
                 print("输入序号使用 (输入其他取消):")
                 try:
@@ -130,18 +140,9 @@ def start_battle(player, enemy_template, current_weapon):
                     real_item = get_item_data_by_name(item_name)
                     if real_item:
                         print(f"   🎁 哇！掉落了 [{item_name}]")
-                        player['bag'].append(real_item.copy())
+                        add_item_to_bag(player, real_item)
             return True
 
-        if 'buffs' in player:
-            # 使用切片 [:] 复制一份列表进行遍历，因为要在循环中删除元素
-            for buff in player['buffs'][:]:
-                buff['duration'] -= 1
-                if buff['duration'] <= 0:
-                    print(f"   📉 {buff['name']} 的效果消失了。")
-                    player['buffs'].remove(buff)  # 移除过期的 buff
-                else:
-                    print(f"   ⏳ {buff['name']} 还有 {buff['duration']} 回合结束。")
 
         # --- 怪物回合 ---
         if player_acted:
@@ -160,9 +161,7 @@ def start_battle(player, enemy_template, current_weapon):
         enemy_logs = attack_logic(enemy, player, weapons=None)  # 怪物不用武器
 
         if enemy_logs:  # 确保有日志
-            print(f"🤖 怪物正在攻击...", end="", flush=True)
             enemy_story = narrate_battle(enemy_logs)
-            print(f"\r{Colors.RED}👿 {enemy_story}{Colors.END}\n")
 
         # 结算燃烧伤害
         process_damage(enemy)

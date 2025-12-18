@@ -8,6 +8,7 @@
 """
 import random
 
+from Battle.Attack import GAME_CONFIG
 from Battle.Battle_Monster import start_battle
 from Battle.Death_penalty import Death_enalty
 from Characters_intro import Relo
@@ -18,6 +19,7 @@ from Place.Map_A import world_map
 from Save.SaveSystem import load_game, save_game
 from Setting.Menu import equip_menu
 from Setting.Style import Colors
+from Setting.Use_items import use_item
 
 
 # 定义战斗
@@ -33,7 +35,7 @@ def main_game_loop():
         if not load_game():
             print("   (将开始新游戏)")
 
-    # 初始装备检查(防止空)
+    # 初始装备检查
     if 'equipped_weapon' not in hero:
         equip_menu(hero)
 
@@ -88,11 +90,7 @@ def main_game_loop():
                             if spawn_key and spawn_key in monster_distribution:
                                 # 1. 权重抽怪
                                 spawn_config = monster_distribution[spawn_key]
-                                names = list(spawn_config.keys())
-                                weights = list(spawn_config.values())
-                                monster_name = random.choices(names, weights=weights, k=1)[0]
-
-                                # 2. 获取怪物数据
+                                monster_name = random.choices(list(spawn_config.keys()), list(spawn_config.values()))[0]
                                 wild_enemy = get_monster_by_name(monster_name)
 
                                 # 3. 触发战斗
@@ -115,14 +113,14 @@ def main_game_loop():
                             print(f"   ✨ 一路顺风，安全抵达 [{next_loc_name}]。")
                     else:
                         print(f"   安全抵达 [{next_loc_name}]。")
-
-            except ValueError:
-                print("输入错误")
+            except:
+                pass
 
         elif choice == "2":
             if location_data.get("safe_zone"):
                 Relo.hero['hp'] = Relo.hero['max_hp']
                 print(f"💤 睡得很香，HP已回满！目前HP: {Relo.hero['hp']}，并顺手保存了进度。")
+                save_game()
             else:
                 print("❌ 这里太危险了，睡着了会被怪物抬走的！(只有安全区能回血)")
 
@@ -130,25 +128,50 @@ def main_game_loop():
         elif choice == "3":
             # --- 状态栏更新 ---
             # 从 hero 字典里取装备
+            cur_w = hero['equipped_weapon']
+            cur_a = hero['equipped_armor']
 
-            cur_w = Relo.hero['equipped_weapon']
-            cur_a = Relo.hero['equipped_armor']
+            current_atk = hero['base_atk'] + cur_w['atk']
+            current_def = hero['def'] + cur_a['def']
 
-            current_atk = Relo.hero['base_atk'] + cur_w['atk']
-            current_def = Relo.hero['def'] + cur_a['def']
-
-            print(f"\n{Colors.CYAN}═══ 📊 {Relo.hero['name']} (Lv.{Relo.hero['level']}) ═══{Colors.END}")
-            print(f"❤️ HP: {Relo.hero['hp']}/{Relo.hero['max_hp']}")
+            print(f"\n{Colors.CYAN}═════════ 📊 角色状态 ═════════{Colors.END}")
+            print(f"🤴 英雄: {hero['name']}  (Lv.{int(hero['level'])})(EXP:{hero['exp']}/{hero['level'] * GAME_CONFIG["EXP_THRESHOLD_BASE"]})")
+            print(f"❤️ HP: {hero['hp']}/{hero['max_hp']}")
             print(f"⚔️ 攻: {current_atk} (武: {cur_w['name']})")
             print(f"🛡️ 防: {current_def} (甲: {cur_a['name']})")
             print("-" * 20)
 
-            # 背包显示逻辑 (保持不变，省略...)
-            # 这里的 equip_menu(hero) 已经适配了
-            print("输入 'e' 换装备 | 'q' 返回")
+            print(f"{Colors.YELLOW}🎒 背包清单:{Colors.END}")
+            if not Relo.hero['bag']:
+                print("   (空空如也)")
+            else:
+                for i, item in enumerate(Relo.hero['bag']):
+                    tag = ""
+                    # 简单区分一下类型显示
+                    if 'atk' in item:
+                        tag = f"(攻+{item['atk']})"
+                    elif 'def' in item:
+                        tag = f"(防+{item['def']})"
+                    elif item.get('type') == 'heal':
+                        tag = f"(回+{item['value']})"
+                    elif item.get('type', '').startswith('buff'):
+                        tag = "(Buff药)"
+
+                    qty = item.get('quantity', 1)
+                    qty_str = f" x{qty}" if qty > 1 else ""
+
+                    print(f"   [{i}] {item['name']}{qty_str} {tag}")
+
+            print("════════════════════════════")
+            print("输入 [序号] 使用物品 | 'e' 换装备 | 'q' 返回")
             sub = input("> ")
-            if sub == 'e': equip_menu(hero)
-        # 徘徊遇敌
+
+            if sub == 'e':
+                equip_menu(hero)
+            elif sub.isdigit():
+                # 尝试使用物品
+                use_item(hero, int(sub))
+
         elif choice == '4':
             # 徘徊
             wander_action(hero)

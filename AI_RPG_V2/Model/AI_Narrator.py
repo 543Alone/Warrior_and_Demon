@@ -49,6 +49,7 @@ def narrate_battle(log_text):
             if content:
                 stream_print(content, speed=0.02)
                 full_response += content
+        print("\n")
         return full_response
     except Exception as e:
         print(f"Error:{e}")
@@ -66,4 +67,3 @@ def stream_print(text, speed=0.03):
         sys.stdout.write(char)
         sys.stdout.flush()
         time.sleep(speed)
-    print()

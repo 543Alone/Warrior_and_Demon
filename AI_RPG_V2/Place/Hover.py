@@ -12,7 +12,7 @@ import time
 from Battle.Battle_Monster import start_battle
 from Battle.Death_penalty import Death_enalty
 from Characters_intro import Relo
-from Characters_intro.Bag import get_item_data_by_name
+from Characters_intro.Bag import get_item_data_by_name, add_item_to_bag
 from Monsters.Monsters import monster_distribution, get_monster_by_name
 from Place.Map_A import world_map
 
@@ -34,7 +34,8 @@ def wander_action(player):
         elif dice < 0.4:
             print("   🍀 运气不错！你在草丛里捡到了一个 [🍎 小苹果]！")
             item = get_item_data_by_name("🍎 小苹果")
-            if item: player['bag'].append(item.copy())
+            if item:
+                add_item_to_bag(player, item)
         else:
             print("   🍃 风很喧嚣，这里一片祥和，什么也没发生。")
         return True
@@ -126,7 +127,7 @@ def wander_action(player):
 
         if real_item:
             print(f"   ✨ 眼前一亮！你在树桩下发现了 [{item_name}]！")
-            player['bag'].append(real_item.copy())
+            add_item_to_bag(player, real_item)
 
     # 纯路过
     else:
