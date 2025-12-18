@@ -118,7 +118,7 @@ def wander_action(player):
     # 没遇到怪，捡垃圾逻辑
     elif dice < encounter_rate + 0.2:
         # 这里以后也可以做成配置表
-        findable_items = ["🍎 小苹果", "💪 力量药剂", "生锈铁剑", "硬石头"]
+        findable_items = ["🍎 小苹果", "💪 力量药剂", "生锈铁剑"]
         item_name = random.choice(findable_items)
         real_item = get_item_data_by_name(item_name)
 
