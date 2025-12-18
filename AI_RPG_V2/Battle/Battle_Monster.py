@@ -9,20 +9,20 @@
 import random
 import time
 
-from langchain_core.messages import HumanMessage
-
-from AI_RPG_V2.Model.AI_Narrator import narrate_battle, llm
 from Battle.Attack import attack_logic, GAME_CONFIG
 from Characters_intro.Bag import get_item_data_by_name, add_item_to_bag
-from Setting.Style import Colors, show_health_bar
-from Setting.Level import check_level_up
+from Model.AI_Narrator import narrate_battle, generate_monster_intro
 from Setting.Abnormal_condition import process_damage
+from Setting.Level import check_level_up
+from Setting.Style import Colors, show_health_bar
 from Setting.Use_items import use_item
+
 
 def get_monster_intro(monster_name):
     """让 LLM 生成怪物开场白"""
     prompt = f"你是一只【{monster_name}】。玩家遇到了你，请你用凶狠或搞笑的语气说一句开场白（20字以内）。"
     return "（LLM生成的开场白）"
+
 
 # 定义战斗
 def start_battle(player, enemy_template, current_weapon):
@@ -30,8 +30,7 @@ def start_battle(player, enemy_template, current_weapon):
     print(f"\n" + "!" * 30)
     enemy = enemy_template.copy()
     print(f"⚠️  遭遇战！一只 {Colors.RED}{enemy['name']}{Colors.END} 出现了！")
-    intro_text = llm.invoke([HumanMessage(content=f"你扮演一只{enemy['name']}，对勇者说一句只有20字的挑衅台词。")])
-    print(f"👿 {enemy['name']}: “{intro_text.content}”")
+    generate_monster_intro(enemy['name'])
     print("!" * 30)
 
     turn = 1
@@ -54,7 +53,7 @@ def start_battle(player, enemy_template, current_weapon):
             logs = attack_logic(player, enemy, current_weapon)
             # print(f"\n[系统日志]:\n{logs}")
             # 调用AI
-            story = narrate_battle(logs)
+            story = narrate_battle(logs, player, enemy)
             # 保留原始数据供调试
             # print(f"[系统原始数据]:\n{logs}")
             player_acted = True
@@ -81,8 +80,6 @@ def start_battle(player, enemy_template, current_weapon):
                         tag = "(可食用)"
                     elif item.get('type', '').startswith('buff'):
                         tag = "(Buff药)"
-                    print(f"   [{i}] {item['name']} {tag}")
-
                     qty = item.get('quantity', 1)
                     # 如果数量大于 1，就显示 xN，否则不显示
                     qty_str = f" x{qty}" if qty > 1 else ""
@@ -143,7 +140,6 @@ def start_battle(player, enemy_template, current_weapon):
                         add_item_to_bag(player, real_item)
             return True
 
-
         # --- 怪物回合 ---
         if player_acted:
             print(f"\n{Colors.RED}[敌方回合]{Colors.END}")
@@ -161,7 +157,7 @@ def start_battle(player, enemy_template, current_weapon):
         enemy_logs = attack_logic(enemy, player, weapons=None)  # 怪物不用武器
 
         if enemy_logs:  # 确保有日志
-            enemy_story = narrate_battle(enemy_logs)
+            enemy_story = narrate_battle(enemy_logs, player, enemy)
 
         # 结算燃烧伤害
         process_damage(enemy)
