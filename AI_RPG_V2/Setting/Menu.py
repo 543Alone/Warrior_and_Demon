@@ -6,7 +6,6 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 15:11
 """
-from Characters_intro import Relo
 
 
 def equip_menu(player):
@@ -16,12 +15,16 @@ def equip_menu(player):
 
     # --- 1. 武器部分 ---
     my_weapons = [item for item in player['bag'] if 'atk' in item]
+    # 获取当前身上的装备
+    cur_w_name = player['equipped_weapon']['name']
+
     if not my_weapons:
         print(" (背包里没有武器)")
     else:
+        print(f"当前装备: {cur_w_name}")
         print("可装备的武器:")
         for i, w in enumerate(my_weapons):
-            mark = "*" if w == Relo.current_weapon else " "
+            mark = "*" if w['name'] == cur_w_name else " "
             print(f"{mark} {i}. {w['name']} (攻+{w['atk']})")
 
         try:
@@ -29,8 +32,9 @@ def equip_menu(player):
             if choice.isdigit():
                 idx = int(choice)
                 if 0 <= idx < len(my_weapons):
-                    Relo.current_weapon = my_weapons[idx]
-                    print(f"✅ 已装备: {Relo.current_weapon['name']}")
+                    # 【修改点】直接修改字典内的键值
+                    player['equipped_weapon'] = my_weapons[idx]
+                    print(f"✅ 已装备: {player['equipped_weapon']['name']}")
         except:
             pass
 
@@ -38,13 +42,15 @@ def equip_menu(player):
 
     # --- 2. 防具部分 ---
     my_armors = [item for item in player['bag'] if 'def' in item]
+    cur_a_name = player['equipped_armor']['name']
 
     if not my_armors:
         print(" (背包里没有防具)")
     else:
+        print(f"当前装备: {cur_a_name}")
         print("可装备的防具:")
         for i, a in enumerate(my_armors):
-            mark = "*" if a == Relo.current_armor else " "
+            mark = "*" if a['name'] == cur_a_name else " "
             print(f"{mark} {i}. {a['name']} (防+{a['def']})")
 
         try:
@@ -52,9 +58,9 @@ def equip_menu(player):
             if choice.isdigit():
                 idx = int(choice)
                 if 0 <= idx < len(my_armors):
-                    # 【关键修改】只切换装备引用，不再直接修改 player['def'] 数值
-                    Relo.current_armor = my_armors[idx]
-                    print(f"✅ 已装备: {Relo.current_armor['name']}")
+                    # 【修改点】直接修改字典内的键值
+                    player['equipped_armor'] = my_armors[idx]
+                    print(f"✅ 已装备: {player['equipped_armor']['name']}")
         except:
             pass
 

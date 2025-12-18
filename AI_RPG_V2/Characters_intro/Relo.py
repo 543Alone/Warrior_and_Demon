@@ -15,29 +15,27 @@ hero = {
     "hp": 100,
     "max_hp": 100,
     "level": 1,
-    "max_cost": 5,  # 初始负重
-    "base_atk": 10,  # 基础攻击力
-    "def": 5,  # 基础防御
+    "base_atk": 10,
+    "def": 5,
     "exp": 0,
-    "SPD": 10,  # 基础移速，影响先手和逃跑
-    "LUCK": 5,  # 幸运值，影响暴击和掉落
-    "bag": [weapons_list[0], armors_list[0]],
+    "bag": [weapons_list[0], armors_list[0]],  # 初始背包
+
+    "equipped_weapon": weapons_list[0],
+    "equipped_armor": armors_list[0],
+
+    # 记录 Buff 列表
+    "buffs": []
 }
 
 demon = {
     "name": "魔王",
-    "hp": 3000,  # 魔王血量厚
+    "hp": 3000,
     "max_hp": 3000,
-    "base_atk": 50,  # 魔王攻击高
+    "base_atk": 50,
     "def": 10,
-    "burn_stack": 0,  # 被火焰层数
-    "LUCK": 0,  # 不幸的成为了魔王
-    "loot": [],  # 防止报错
+    "burn_stack": 0,
+    "loot": []
 }
 
-# 玩家当前位置
 current_location = "新手村"
-# 定义两个全局变量存当前装备
-current_weapon = weapons_list[0]
-current_armor = armors_list[0]
 current_enemy = None

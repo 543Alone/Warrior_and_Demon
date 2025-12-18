@@ -9,7 +9,9 @@
 import random
 import time
 
-from AI_RPG_V2.Model.AI_Narrator import narrate_battle
+from langchain_core.messages import HumanMessage
+
+from AI_RPG_V2.Model.AI_Narrator import narrate_battle, llm
 from Battle.Attack import attack_logic, GAME_CONFIG
 from Characters_intro.Bag import get_item_data_by_name
 from Setting.Style import Colors, show_health_bar
@@ -17,14 +19,19 @@ from Setting.Level import check_level_up
 from Setting.Abnormal_condition import process_damage
 from Setting.Use_items import use_item
 
+def get_monster_intro(monster_name):
+    """让 LLM 生成怪物开场白"""
+    prompt = f"你是一只【{monster_name}】。玩家遇到了你，请你用凶狠或搞笑的语气说一句开场白（20字以内）。"
+    return "（LLM生成的开场白）"
 
 # 定义战斗
 def start_battle(player, enemy_template, current_weapon):
     # 复制敌人数据
-    enemy = enemy_template.copy()
-
     print(f"\n" + "!" * 30)
+    enemy = enemy_template.copy()
     print(f"⚠️  遭遇战！一只 {Colors.RED}{enemy['name']}{Colors.END} 出现了！")
+    intro_text = llm.invoke([HumanMessage(content=f"你扮演一只{enemy['name']}，对勇者说一句只有20字的挑衅台词。")])
+    print(f"👿 {enemy['name']}: “{intro_text.content}”")
     print("!" * 30)
 
     turn = 1

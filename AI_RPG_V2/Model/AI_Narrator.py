@@ -7,6 +7,8 @@
 @Date    ：2025/12/17 16:58 
 """
 import os
+import sys
+import time
 
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
@@ -40,7 +42,28 @@ def narrate_battle(log_text):
     """
 
     try:
-        response = llm.invoke([HumanMessage(content=prompt)])
-        return response.content
+        full_response = ""
+        # 实时流式输出
+        for chunk in llm.stream([HumanMessage(content=prompt)]):
+            content = chunk.content
+            if content:
+                stream_print(content, speed=0.02)
+                full_response += content
+        return full_response
     except Exception as e:
-        return f"（AI 描写生成失败，直接显示日志）\n{log_text}"
+        print(f"Error:{e}")
+        return log_text
+
+
+def stream_print(text, speed=0.03):
+    """
+    流式输出
+    :param text: 文本
+    :param speed: 输出速度
+    :return:
+    """
+    for char in text:
+        sys.stdout.write(char)
+        sys.stdout.flush()
+        time.sleep(speed)
+    print()

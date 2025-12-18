@@ -18,21 +18,21 @@ from Place.Map_A import world_map
 
 
 def wander_action(player):
-    # 实例化
+    # 实例化全局
     location_name = Relo.current_location
     # 获取原本数据
-    current_location = world_map.get(location_name, {})
+    current_location_data = world_map.get(location_name, {})
 
     print(f"\n🚶 你开始在 [{location_name}] 四处徘徊...")
     time.sleep(1)
 
     # 在安全区
-    if current_location.get("safe_zone"):
+    if current_location_data.get("safe_zone"):
         dice = random.random()
         if dice < 0.2:
             print("   💬 你遇到了村长，但他正在午睡。")
         elif dice < 0.4:
-            print("🍀 运气不错！你在草丛里捡到了一个 [🍎 小苹果]！")
+            print("   🍀 运气不错！你在草丛里捡到了一个 [🍎 小苹果]！")
             item = get_item_data_by_name("🍎 小苹果")
             if item: player['bag'].append(item.copy())
         else:
@@ -40,12 +40,12 @@ def wander_action(player):
         return True
 
     # 战斗/遭遇判定逻辑
-    encounter_rate = current_location.get("danger_level", 0)
+    encounter_rate = current_location_data.get("danger_level", 0)
     dice = random.random()
     print(f"开始投掷命运的骰子：{dice}")
 
     if dice <= encounter_rate:
-        spawn_key = current_location.get("spawn_table")
+        spawn_key = current_location_data.get("spawn_table")
         enemy_template = None
 
         # 权重选怪 (核心逻辑)
@@ -60,7 +60,7 @@ def wander_action(player):
 
         # 保底
         if not enemy_template:
-            print("（警告：该区域没有配置怪物，一只迷路的史莱姆出现了）")
+            print("   （警告：该区域没有配置怪物，一只迷路的史莱姆出现了）")
             enemy_template = get_monster_by_name("史莱姆")
 
         # 分支处理：根据怪物类型决定由于发生什么
@@ -71,11 +71,12 @@ def wander_action(player):
             print("\n📦 你在路边发现了一个神秘的宝箱！")
 
             # 动态削弱逻辑：如果是新手村，把怪改弱
-            current_monster = enemy_template.copy()
+            current_monster = enemy_template
+
             if location_name == "幽暗森林":
                 print("   (直觉: 这个箱子看起来破破烂烂的，似乎没什么威胁)")
-                current_monster['base_atk'] = 15  # 削弱
-                current_monster['hp'] = 50  # 削弱
+                current_monster['base_atk'] = 15
+                current_monster['hp'] = 50
                 current_monster['name'] = "朽木宝箱怪"
             else:
                 print("   (直觉: 箱子缝隙里透出极度危险的血光！)")
@@ -85,7 +86,7 @@ def wander_action(player):
 
             if choice == 'y':
                 print(f"   😱 咔嚓！箱子突然咬了过来！它是 {current_monster['name']}！")
-                win = start_battle(player, current_monster, Relo.current_weapon)
+                win = start_battle(player, current_monster, None)
             else:
                 print("   💨 你觉得小命要紧，转身离开了。")
                 return True  # 直接结束本次徘徊
@@ -95,7 +96,7 @@ def wander_action(player):
             # 既然权重已经很难抽到了，这里给个 50% 几率真打吧，不然太没存在感了
             if random.random() < 0.5:
                 print(f"   💻 他嘴里念叨着 'Bug... Bug...' 向你冲来！")
-                win = start_battle(player, enemy_template, Relo.current_weapon)
+                win = start_battle(player, enemy_template, None)
                 # 检查玩家是否死亡
                 if not win and player['hp'] <= 0:
                     Death_enalty()
@@ -106,7 +107,7 @@ def wander_action(player):
 
         else:
             print(f"⚔️ 遭遇战！面前冲出来一只 {enemy_template['name']}！")
-            win = start_battle(player, enemy_template, Relo.current_weapon)
+            win = start_battle(player, enemy_template, None)
 
         # 战斗后结算 (通用)
         # 如果打输了且人死了

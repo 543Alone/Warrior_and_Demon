@@ -9,7 +9,6 @@
 import random
 
 # 引入 Relo 是为了获取当前的装备数据
-from Characters_intro import Relo
 from Setting.Abnormal_condition import apply_burn_effect, apply_hemophagia_effect, Excalibur
 from Setting.Style import Colors
 
@@ -29,59 +28,60 @@ def attack_logic(attacker, defender, weapons=None):
     计算一次攻击的所有逻辑
     """
     combat_logs = []
-
-    # 1. 记录发起攻击
     combat_logs.append(f"   \n⚔️  {attacker['name']} 发起了攻击！")
 
-    # 2. 基础数值准备
     total_atk = attacker['base_atk']
     hit_chance = 0.9
     dmg_multiplier = 1.0
     current_effect = None
 
-    # 3. 玩家武器逻辑 (关键修复点：确保这里不会导致函数提前中断)
-    if weapons:
-        total_atk += weapons["atk"]
-        hit_chance = weapons['hit_rate']
-        current_effect = weapons.get("effect")
-        combat_logs.append(f"   (使用武器: {weapons['name']} | 武器攻击: {weapons['atk']})")
+    # --- 1. 武器逻辑 ---
+    real_weapon = weapons
+    if not real_weapon and 'equipped_weapon' in attacker:
+        real_weapon = attacker['equipped_weapon']
 
-        # 圣剑特效检查
-        # 即使 Excalibur 报错或返回 None，也不会影响后续流程
+    if real_weapon:
+        total_atk += real_weapon["atk"]
+        hit_chance = real_weapon['hit_rate']
+        current_effect = real_weapon.get("effect")
+        combat_logs.append(f"   (使用武器: {real_weapon['name']} | 攻+{real_weapon['atk']})")
+
         try:
             special_dmg = Excalibur(attacker, defender)
             if special_dmg:
-                total_atk = int(attacker['base_atk'] * 2.5)  # 简单处理为基础攻击2.5倍
-                combat_logs.append(f"   ✨ {Colors.YELLOW}圣剑光辉！对魔王造成 2.5倍 伤害！{Colors.END}")
-        except Exception:
-            pass  # 防止特效报错卡死
+                total_atk = int(attacker['base_atk'] * 2.5)
+                combat_logs.append(f"   ✨ {Colors.YELLOW}圣剑光辉！造成 2.5倍 伤害！{Colors.END}")
+        except:
+            pass
 
-    # 4. Buff 处理
+    # --- 2. Buff 逻辑 ---
     if 'buffs' in attacker:
         for buff in attacker['buffs']:
             if buff['type'] == 'atk':
                 total_atk += buff['value']
-                combat_logs.append(f"      (💪 {buff['name']} 加成: +{buff['value']})")
             elif buff['type'] == 'hit':
                 hit_chance += buff['value']
 
-    # 5. 防御计算 (修复了无限叠加 Bug)
+    # --- 3. 防御逻辑 ---
     def_val = defender.get('def', 0)
-    if defender['name'] == Relo.hero['name']:
-        def_val += Relo.current_armor.get('def', 0)
 
-    # 6. 闪避计算
+    if 'equipped_armor' in defender:
+        armor = defender['equipped_armor']
+        def_val += armor.get('def', 0)
+        # combat_logs.append(f"   (护甲: {armor['name']} 抵消了部分伤害)")
+
+    # --- 4. 闪避逻辑 ---
     defender_dodge = defender.get("dodge", 0.0)
-    if defender['name'] == Relo.hero['name']:
-        defender_dodge += Relo.current_armor.get('dodge', 0.0)
+    if 'equipped_armor' in defender:
+        defender_dodge += defender['equipped_armor'].get('dodge', 0.0)
 
-    # --- 命中判定 ---
+    # --- 5. 判定与结算 ---
     if random.random() > hit_chance:
-        combat_logs.append(f"   🚫 {attacker['name']} 的攻击挥空了！(Miss)")
+        combat_logs.append(f"   🚫 {attacker['name']} Miss")
         return "\n".join(combat_logs)  # 🔴 这是一个返回点
 
     if random.random() < defender_dodge:
-        combat_logs.append(f"   ⚡ {defender['name']} 身手敏捷，躲开了攻击！(Dodge)")
+        combat_logs.append(f"   ⚡ {defender['name']} Dodge")
         return "\n".join(combat_logs)  # 🔴 这是一个返回点
 
     # 7. 暴击判定
@@ -99,11 +99,11 @@ def attack_logic(attacker, defender, weapons=None):
     if defender['hp'] < 0: defender['hp'] = 0
 
     crit_text = "💥 暴击！" if is_crit else ""
-    combat_logs.append(f"   ➡️  击中了 {defender['name']}！{crit_text} 造成了 {final_dmg} 点伤害。")
+    combat_logs.append(f"   ➡️  击中 {defender['name']}！{crit_text} 造成 {final_dmg} 点伤害。")
     combat_logs.append(f"   🩸 {defender['name']} 剩余 HP: {defender['hp']}")
 
     # 9. 触发武器特效 (燃烧/吸血)
-    if weapons:
+    if real_weapon:
         if current_effect == "hemophagia":
             apply_hemophagia_effect(attacker, final_dmg)
         elif current_effect == "burn":
