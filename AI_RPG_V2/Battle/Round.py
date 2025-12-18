@@ -8,16 +8,16 @@
 """
 import random
 
-from AI_RPG_V2.Battle.Battle_Monster import start_battle, GAME_CONFIG
-from AI_RPG_V2.Characters_intro import Relo
-from AI_RPG_V2.Characters_intro.Relo import hero
-from AI_RPG_V2.Monsters.Monsters import monsters_list, monster_distribution, get_monster_by_name
-from AI_RPG_V2.Place.Map_A import world_map
-from AI_RPG_V2.Setting.Menu import equip_menu
-from AI_RPG_V2.Setting.Style import Colors
-from AI_RPG_V2.Place.Hover import wander_action
-from AI_RPG_V2.Battle.Death_penalty import Death_enalty
-from AI_RPG_V2.Setting.Use_items import use_item
+from Battle.Battle_Monster import start_battle, GAME_CONFIG
+from Characters_intro import Relo
+from Characters_intro.Relo import hero
+from Monsters.Monsters import monsters_list, monster_distribution, get_monster_by_name
+from Place.Map_A import world_map
+from Setting.Menu import equip_menu
+from Setting.Style import Colors
+from Place.Hover import wander_action
+from Battle.Death_penalty import Death_enalty
+from Setting.Use_items import use_item
 
 
 # 定义战斗

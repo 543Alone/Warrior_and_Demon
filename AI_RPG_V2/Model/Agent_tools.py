@@ -8,10 +8,10 @@
 """
 from langchain_core.tools import tool
 import random
-from AI_RPG_V2.Battle.Attack import attack_logic
-from AI_RPG_V2.Characters_intro import Relo
-from AI_RPG_V2.Place.Map_A import world_map
-from AI_RPG_V2.Monsters.Monsters import monster_distribution, get_monster_by_name
+from Battle.Attack import attack_logic
+from Characters_intro import Relo
+from Place.Map_A import world_map
+from Monsters.Monsters import monster_distribution, get_monster_by_name
 
 
 # --- 工具 1: 移动 ---

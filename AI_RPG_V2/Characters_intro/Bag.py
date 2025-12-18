@@ -6,8 +6,9 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 17:02 
 """
-from AI_RPG_V2.勇士与魔王 import weapons_list, armors_list, items_list
-
+from Warehouse.Weapons import weapons_list
+from Warehouse.Armor import armors_list
+from Warehouse.Items import items_list
 
 def get_item_data_by_name(item_name):
     # 搜索武器库

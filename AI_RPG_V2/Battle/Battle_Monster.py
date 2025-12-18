@@ -10,12 +10,12 @@ import random
 import time
 
 from AI_RPG_V2.Model.AI_Narrator import narrate_battle
-from RPG.Battle.Attack import attack_logic, GAME_CONFIG
-from RPG.Characters_intro.Bag import get_item_data_by_name
-from RPG.Setting.Style import Colors, show_health_bar
-from RPG.Setting.Level import check_level_up
-from RPG.Setting.Abnormal_condition import process_damage
-from RPG.Setting.Use_items import use_item
+from Battle.Attack import attack_logic, GAME_CONFIG
+from Characters_intro.Bag import get_item_data_by_name
+from Setting.Style import Colors, show_health_bar
+from Setting.Level import check_level_up
+from Setting.Abnormal_condition import process_damage
+from Setting.Use_items import use_item
 
 
 # 定义战斗
@@ -48,9 +48,12 @@ def start_battle(player, enemy_template, current_weapon):
         # --- 选项 1: 攻击 ---
         if action == "1":
             logs = attack_logic(player, enemy, current_weapon)
+            print(f"\n[系统日志]:\n{logs}")
             print(f"\n🤖 AI 正在构思战斗画面...", end="", flush=True)
+
+            # 调用AI
             story = narrate_battle(logs)
-            print(f"\r{Colors.YELLOW}📝 {story}{Colors.END}\n")
+            print(f"\n{Colors.YELLOW}📝 战斗描写:\n{story}{Colors.END}\n")
             # 保留原始数据供调试
             # print(f"[系统原始数据]:\n{logs}")
             player_acted = True

@@ -6,7 +6,7 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 15:11
 """
-from AI_RPG_V2.Characters_intro import Relo
+from Characters_intro import Relo
 
 
 def equip_menu(player):
