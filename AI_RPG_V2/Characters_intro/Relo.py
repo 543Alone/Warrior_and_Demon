@@ -6,8 +6,8 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 09:36 
 """
-from RPG.Warehouse.Weapons import weapons_list
-from RPG.Warehouse.Armor import armors_list
+from AI_RPG_V2.Warehouse.Weapons import weapons_list
+from AI_RPG_V2.Warehouse.Armor import armors_list
 # 角色属性
 hero = {
     "name": "勇士",

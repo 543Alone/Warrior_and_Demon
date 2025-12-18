@@ -1,17 +1,19 @@
 # -*- coding: UTF-8 -*-
 """
-@Project ：LangGraph 
+@Project ：LangGraph
 @File    ：Round.py
-@IDE     ：PyCharm 
+@IDE     ：PyCharm
 @Author  ：Write Bug
-@Date    ：2025/12/8 16:56 
+@Date    ：2025/12/8 16:56
 """
+# -*- coding: UTF-8 -*-
 import random
 
 from RPG.Battle.Battle_Monster import start_battle, GAME_CONFIG
 from RPG.Characters_intro import Relo
 from RPG.Characters_intro.Relo import hero
-from RPG.Monsters.Monsters import monsters_list
+# 1. 引入必须的配置，不再引入 monsters_list 全图鉴
+from RPG.Monsters.Monsters import monster_distribution, get_monster_by_name
 from RPG.Place.Map_A import world_map
 from RPG.Setting.Menu import equip_menu
 from RPG.Setting.Style import Colors
@@ -20,8 +22,6 @@ from RPG.Battle.Death_penalty import Death_enalty
 from RPG.Setting.Use_items import use_item
 
 
-# 定义战斗
-# 战斗主逻辑
 def main_game_loop():
     print(f"{Colors.YELLOW}=== 欢迎来到《勇士大陆》 ==={Colors.END}")
 
@@ -38,162 +38,176 @@ def main_game_loop():
         print("-" * 30)
 
         # 行动菜单
-        print("1. 🚶 移动")
-        print("2. 💤 休息 (回血)")
-        print("3. 🎒 状态与装备")
-        print("4. 🔍 在周围徘徊 (练级/寻宝)")
+        print("1. 🚶 移动 (Move)")
+        print("2. 💤 休息 (Rest)")
+        print("3. 🎒 状态与装备 (Status)")
+        print("4. 🔍 在周围徘徊 (Explore)")
         if location_data.get("is_boss_room"):
             print(f"9. ⚔️ {Colors.RED}决战魔王！{Colors.END}")
 
         choice = input("请选择: ")
 
+        # 选项 1: 移动
         if choice == "1":
-            # 移动逻辑
             print("可以去的地方:")
-            # 注意：这里要用 location_data，不能用 world_map直接取
             targets = location_data["connects_to"]
             for i, dest in enumerate(targets):
                 print(f"{i + 1}. {dest}")
 
             try:
-                idx = int(input("输入序号: ")) - 1
+                input_val = input("输入序号 (输入 0 或其他取消): ")
+                if not input_val.isdigit(): continue
+
+                idx = int(input_val) - 1
                 if 0 <= idx < len(targets):
                     next_loc_name = targets[idx]
                     next_loc_data = world_map[next_loc_name]
 
-                    # 移动成功
+                    # 1. 执行移动
+                    print(f"🚶 正在前往 [{next_loc_name}]...")
                     Relo.current_location = next_loc_name
 
-                    # 遇敌判定 (不在安全区 且 不是BOSS房)
+                    # 2. 移动路上的遭遇战判定
+                    # 只有不在安全区，且不是BOSS房，才有概率拦路
                     if not next_loc_data.get("safe_zone") and not next_loc_data.get("is_boss_room"):
-                        # 假设 50% 概率遇怪
-                        if random.random() < 0.4:
-                            # 随机抽一个小怪
-                            wild_enemy = random.choice(monsters_list)
-                            # 触发战斗
-                            if wild_enemy['name'] == "发狂的程序员":
-                                if random.random() < 0.01:
-                                    win = start_battle(hero, wild_enemy)
-                                    if not win and hero['hp'] == 0:
-                                        Death_enalty()
+
+                        # 30% 概率在半路被拦截 (移动遇敌率可以设低一点)
+                        if random.random() < 0.3:
+                            spawn_key = next_loc_data.get("spawn_table")
+
+                            if spawn_key and spawn_key in monster_distribution:
+                                spawn_config = monster_distribution[spawn_key]
+                                names = list(spawn_config.keys())
+                                weights = list(spawn_config.values())
+
+                                # 抽怪
+                                monster_name = random.choices(names, weights=weights, k=1)[0]
+                                wild_enemy = get_monster_by_name(monster_name)
+
+                                # 因为半路突然出现个宝箱让你选有点怪，简化处理，直接打普通怪
+                                if "宝箱怪" in wild_enemy['name'] or "程序员" in wild_enemy['name']:
+                                    print("   💨 草丛里有什么东西一闪而过，你没看清。")
                                 else:
-                                    print("   👀 你感觉好像感受到了汗毛直立的怒火。")
-                            elif wild_enemy['name'] == "宝箱怪":
-                                if random.random() < 0.1:
-                                    win = start_battle(hero, wild_enemy)
-                                    if not win and hero['hp'] == 0:
+                                    print(f"⚔️ 糟糕！你在半路遭遇了拦截！是 {wild_enemy['name']}！")
+                                    # 修正：必须传入 current_weapon
+                                    win = start_battle(hero, wild_enemy, Relo.current_weapon)
+
+                                    if not win and hero['hp'] <= 0:
                                         Death_enalty()
-                                else:
-                                    print("   👀 你感觉好像有东西在盯着你，但回过头什么也没有。")
+                                        # 复活后通常会回城，这里continue重新循环即可
+                            else:
+                                print("   (周围很安静，你安全抵达)")
+                    else:
+                        print(f"   安全抵达 [{next_loc_name}]。")
+
             except ValueError:
                 print("输入错误")
 
+        # 选项 2: 休息
         elif choice == "2":
             if location_data.get("safe_zone"):
                 Relo.hero['hp'] = Relo.hero['max_hp']
-                print("💤 睡得很香，HP已回满！")
+                print(f"💤 睡得很香，HP已回满！目前HP: {Relo.hero['hp']}")
             else:
-                print("❌ 野外睡觉会被狼叼走的！")
+                print("❌ 这里太危险了，睡着了会被怪物抬走的！(只有安全区能回血)")
 
-
+        # 选项 3: 状态
         elif choice == "3":
-            while True:  # 创建一个新的循环来处理背包界面
+            while True:
+                # 重新计算一下面板，防止装备更换后显示不同步
+                current_atk = Relo.hero['base_atk'] + Relo.current_weapon['atk']
+                current_def = Relo.hero['def'] + Relo.current_armor['def']
+
                 print(f"\n{Colors.CYAN}═════════ 📊 角色状态 ═════════{Colors.END}")
-                print(
-                    f"🤴 英雄: {Relo.hero['name']}  (Lv.{int(Relo.hero['level'])})  (Exp:{int(Relo.hero['exp'])}/{Relo.hero['level'] * GAME_CONFIG["EXP_THRESHOLD_BASE"]})")
+                print(f"🤴 英雄: {Relo.hero['name']}  (Lv.{int(Relo.hero['level'])})")
                 print(f"❤️ 血量: {Colors.RED}{Relo.hero['hp']}/{Relo.hero['max_hp']}{Colors.END}")
-                print(
-                    f"🗡️ 攻击: {Relo.hero['base_atk'] + Relo.current_weapon['atk']} (基础{Relo.hero['base_atk']} + 武器{Relo.current_weapon['atk']})")
-                print(
-                    f"🛡️ 防御: {Relo.hero['def'] + Relo.current_armor['def']} (基础{Relo.hero.get('def', 0)} + 防具{Relo.current_armor['def']})")
-                print()
+                print(f"🗡️ 攻击: {current_atk} (基础{Relo.hero['base_atk']} + 武器{Relo.current_weapon['atk']})")
+                print(f"🛡️ 防御: {current_def} (基础{Relo.hero['def']} + 防具{Relo.current_armor['def']})")
                 print("-" * 30)
-                print(f"当前装备: [{Relo.current_weapon['name']}] & [{Relo.current_armor['name']}]")
+                # 增加颜色显示
+                print(f"当前武器: {Relo.current_weapon['name']}")
+                print(f"当前护甲: {Relo.current_armor['name']}")
+
                 print(f"\n{Colors.YELLOW}🎒 背包清单:{Colors.END}")
                 if not Relo.hero['bag']:
                     print("   (空空如也)")
+                    display_list = []  # 防止后面报错
                 else:
                     stacked_bag = {}
-
-                    # 遍历背包，统计数量
                     for item in hero['bag']:
                         name = item['name']
                         if name in stacked_bag:
                             stacked_bag[name]['count'] += 1
                         else:
-                            # 第一次遇到这个物品，存入数据和初始数量1
-                            stacked_bag[name] = {
-                                'data': item,  # 存物品原始数据方便读取属性
-                                'count': 1
-                            }
+                            stacked_bag[name] = {'data': item, 'count': 1}
 
                     display_list = list(stacked_bag.keys())
-
-                    # 遍历统计好的字典进行显示
-                    # index 用于显示序号 (虽然堆叠显示后，序号就不能直接对应背包index了，这里仅作展示用)
                     index = 1
                     for name, info in stacked_bag.items():
                         item_data = info['data']
                         count = info['count']
-
-                        # 只有数量大于1才显示 xN
                         count_str = f"{Colors.YELLOW} x{count}{Colors.END}" if count > 1 else ""
 
-                        # 根据类型显示不同图标
+                        # 简单的类型判断图标
+                        icon = "📦"
+                        val_str = ""
                         if 'atk' in item_data:
-                            print(f"   [{index}] ⚔️ {name} (攻+{item_data['atk']}){count_str}")
+                            icon = "⚔️";
+                            val_str = f"(攻+{item_data['atk']})"
                         elif 'def' in item_data:
-                            print(f"   [{index}] 🛡️ {name} (防+{item_data['def']}){count_str}")
-                        elif 'type' in item_data and item_data['type'] == 'heal':
-                            print(f"   [{index}] 🧪 {name} (回血+{item_data['value']}){count_str}")
-                        else:
-                            print(f"   [{index}] 📦 {name}{count_str}")
+                            icon = "🛡️";
+                            val_str = f"(防+{item_data['def']})"
+                        elif item_data.get('type') == 'heal':
+                            icon = "🧪";
+                            val_str = f"(回+{item_data['value']})"
 
+                        print(f"   [{index}] {icon} {name} {val_str}{count_str}")
                         index += 1
 
                 print("═══════════════════════════════")
                 print("输入 [序号] 使用物品 | 'e' 换装备 | 'q' 返回")
-
                 sub_choice = input("你的选择: ")
 
                 if sub_choice == 'q':
                     break
-
                 elif sub_choice == 'e':
                     equip_menu(hero)
-
                 elif sub_choice.isdigit():
-                    idx = int(sub_choice) - 1  # 修正：用户输入从1开始，转换为从0开始的索引
-
+                    idx = int(sub_choice) - 1
                     if 0 <= idx < len(display_list):
-                        # 获取玩家选的名字
                         target_name = display_list[idx]
-
                         real_index = -1
                         for bag_i, item in enumerate(hero['bag']):
                             if item['name'] == target_name:
                                 real_index = bag_i
-                                break  # 找到一个就停，只吃一个
-
+                                break
                         if real_index != -1:
                             use_item(hero, real_index)
-                            # 使用完后循环会继续，重新统计堆叠数量，所以显示会自动更新
                         else:
-                            print("❌ 发生奇怪的错误：找不到物品。")
+                            print("❌ 错误: 物品不存在")
                     else:
-                        print("❌ 输入的序号不对。")
-                else:
-                    print("输入无效")
-        elif choice == '4':
-            is_alive = wander_action(hero)
-            if not is_alive and hero['hp'] == 0:
-                Death_enalty()
+                        print("❌ 序号无效")
 
+        # 选项 4: 徘徊 (调用 Hover.py)
+        elif choice == '4':
+            # 直接调用我们刚才修好的 Hover 逻辑
+            # Hover 里已经包含了权重判断、宝箱怪削弱、死亡惩罚等所有逻辑
+            is_alive = wander_action(hero)
+
+            # Hover 内部已经处理了 Death_enalty，这里只需要判断如果死了退出循环或者怎么处理
+            # 其实 wander_action 里的 Death_enalty 执行完后，玩家血量还是0，
+            # 下一次循环 location 可能变回新手村了
+
+        # 选项 9: BOSS战
         elif choice == "9" and location_data.get("is_boss_room"):
-            print("勇者推开了魔王殿的大门...")
-            win = start_battle(Relo.hero, Relo.demon, Relo.current_weapon)
-            if win:
-                print("🏆 恭喜通关！！")
-                break
+            print(f"\n{Colors.RED}🔥 警告：你即将面对最终的恐惧...{Colors.END}")
+            confirm = input("确定要挑战吗？(y/n): ")
+            if confirm.lower() == 'y':
+                print("勇者推开了魔王殿的大门...")
+                # 这里的 Relo.demon 建议也用 get_monster_by_name 获取，或者你之前定义好的
+                win = start_battle(Relo.hero, Relo.demon, Relo.current_weapon)
+                if win:
+                    print("🏆 恭喜通关！！游戏结束。")
+                    break
             else:
-                break
+                print("你怂了，退回了门口。")

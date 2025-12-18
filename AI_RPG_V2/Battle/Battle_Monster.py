@@ -9,6 +9,7 @@
 import random
 import time
 
+from AI_RPG_V2.Model.AI_Narrator import narrate_battle
 from RPG.Battle.Attack import attack_logic, GAME_CONFIG
 from RPG.Characters_intro.Bag import get_item_data_by_name
 from RPG.Setting.Style import Colors, show_health_bar
@@ -18,7 +19,7 @@ from RPG.Setting.Use_items import use_item
 
 
 # 定义战斗
-def start_battle(player, enemy_template,current_weapon):
+def start_battle(player, enemy_template, current_weapon):
     # 复制敌人数据
     enemy = enemy_template.copy()
 
@@ -42,11 +43,16 @@ def start_battle(player, enemy_template,current_weapon):
 
         action = input("你的选择 (1-3): ")
 
-        player_acted = False # 标记玩家是否采取了有效行动
+        player_acted = False  # 标记玩家是否采取了有效行动
 
         # --- 选项 1: 攻击 ---
         if action == "1":
-            attack_logic(player, enemy,current_weapon)
+            logs = attack_logic(player, enemy, current_weapon)
+            print(f"\n🤖 AI 正在构思战斗画面...", end="", flush=True)
+            story = narrate_battle(logs)
+            print(f"\r{Colors.YELLOW}📝 {story}{Colors.END}\n")
+            # 保留原始数据供调试
+            # print(f"[系统原始数据]:\n{logs}")
             player_acted = True
 
         # --- 选项 2: 使用物品 ---
@@ -58,8 +64,10 @@ def start_battle(player, enemy_template,current_weapon):
                 print("\n🎒 战斗背包:")
                 for i, item in enumerate(player['bag']):
                     tag = ""
-                    if item.get('type') == 'heal': tag = "(可食用)"
-                    elif item.get('type', '').startswith('buff'): tag = "(Buff药)"
+                    if item.get('type') == 'heal':
+                        tag = "(可食用)"
+                    elif item.get('type', '').startswith('buff'):
+                        tag = "(Buff药)"
                     print(f"   [{i}] {item['name']} {tag}")
 
                 print("输入序号使用 (输入其他取消):")
@@ -84,17 +92,15 @@ def start_battle(player, enemy_template,current_weapon):
             time.sleep(0.5)
             if random.random() < 0.5:
                 print(f"💨 {Colors.GREEN}逃跑成功！你溜之大吉。{Colors.END}")
-                return True # 逃跑算作存活，返回 True
+                return True  # 逃跑算作存活，返回 True
             else:
                 print(f"🚫 {Colors.RED}逃跑失败！被 {enemy['name']} 拦住了！{Colors.END}")
-                player_acted = True # 逃跑失败也算行动过，会挨打
+                player_acted = True  # 逃跑失败也算行动过，会挨打
 
         # --- 无效输入 ---
         else:
             print("❌ 无效的指令，请重新输入。")
-            continue # 跳过本次循环，重新选择
-
-
+            continue  # 跳过本次循环，重新选择
 
         # 如果怪物死了，不用等它反击，直接胜利
         if enemy['hp'] <= 0:
@@ -141,7 +147,13 @@ def start_battle(player, enemy_template,current_weapon):
                         player['buffs'].remove(buff)
 
         # 怪物攻击
-        attack_logic(enemy, player, weapons=None)  # 怪物不用武器
+        enemy_logs = attack_logic(enemy, player, weapons=None)  # 怪物不用武器
+
+        if enemy_logs:  # 确保有日志
+            print(f"🤖 怪物正在攻击...", end="", flush=True)
+            enemy_story = narrate_battle(enemy_logs)
+            print(f"\r{Colors.RED}👿 {enemy_story}{Colors.END}\n")
+
         # 结算燃烧伤害
         process_damage(enemy)
 
