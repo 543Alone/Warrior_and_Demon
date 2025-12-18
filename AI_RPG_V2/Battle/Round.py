@@ -11,7 +11,7 @@ import random
 from AI_RPG_V2.Battle.Battle_Monster import start_battle, GAME_CONFIG
 from AI_RPG_V2.Characters_intro import Relo
 from AI_RPG_V2.Characters_intro.Relo import hero
-from AI_RPG_V2.Monsters.Monsters import monsters_list
+from AI_RPG_V2.Monsters.Monsters import monsters_list, monster_distribution, get_monster_by_name
 from AI_RPG_V2.Place.Map_A import world_map
 from AI_RPG_V2.Setting.Menu import equip_menu
 from AI_RPG_V2.Setting.Style import Colors

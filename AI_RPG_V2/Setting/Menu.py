@@ -14,14 +14,13 @@ def equip_menu(player):
     print("\n" + "=" * 20)
     print("【🎒 背包 & 装备】")
 
+    # --- 1. 武器部分 ---
     my_weapons = [item for item in player['bag'] if 'atk' in item]
     if not my_weapons:
         print(" (背包里没有武器)")
     else:
-        # 换武器
         print("可装备的武器:")
         for i, w in enumerate(my_weapons):
-            # 标记当前装备的
             mark = "*" if w == Relo.current_weapon else " "
             print(f"{mark} {i}. {w['name']} (攻+{w['atk']})")
 
@@ -37,7 +36,7 @@ def equip_menu(player):
 
     print("-" * 20)
 
-    # 换防具
+    # --- 2. 防具部分 ---
     my_armors = [item for item in player['bag'] if 'def' in item]
 
     if not my_armors:
@@ -53,16 +52,9 @@ def equip_menu(player):
             if choice.isdigit():
                 idx = int(choice)
                 if 0 <= idx < len(my_armors):
-                    # 先移除旧防具的加成 (防止无限叠加BUG)
-                    player['def'] -= Relo.current_armor.get('def', 0)
-
-                    # 换新装备
+                    # 【关键修改】只切换装备引用，不再直接修改 player['def'] 数值
                     Relo.current_armor = my_armors[idx]
-
-                    # 加上新防具加成
-                    player['def'] += Relo.current_armor['def']
-                    player['dodge'] = Relo.current_armor.get('dodge', 0)
-                    print(f"✅ 已装备: {Relo.current_armor['name']} (当前防御: {player['def']})")
+                    print(f"✅ 已装备: {Relo.current_armor['name']}")
         except:
             pass
 

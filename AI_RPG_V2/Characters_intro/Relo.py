@@ -8,12 +8,13 @@
 """
 from AI_RPG_V2.Warehouse.Weapons import weapons_list
 from AI_RPG_V2.Warehouse.Armor import armors_list
+
 # 角色属性
 hero = {
     "name": "勇士",
     "hp": 100,
     "max_hp": 100,
-    "level":1,
+    "level": 1,
     "max_cost": 5,  # 初始负重
     "base_atk": 10,  # 基础攻击力
     "def": 5,  # 基础防御
@@ -39,3 +40,4 @@ current_location = "新手村"
 # 定义两个全局变量存当前装备
 current_weapon = weapons_list[0]
 current_armor = armors_list[0]
+current_enemy = None

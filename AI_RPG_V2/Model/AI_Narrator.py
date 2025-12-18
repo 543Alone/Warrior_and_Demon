@@ -12,35 +12,30 @@ from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langchain_xai import ChatXAI
 
-# 加载 .env 文件中的环境变量
 load_dotenv()
-# print(os.getenv("XAI_API_KEY"))
 
 llm = ChatXAI(
     model="grok-4-1-fast-reasoning-latest",
-    temperature=0.7,
-    max_retries=2,
-    api_key=os.getenv("XAI_API_KEY"),  # 从环境变量中获取API密钥
+    temperature=0.9,  # 调高创造力
+    api_key=os.getenv("XAI_API_KEY"),
 )
 
 
 def narrate_battle(log_text):
-    """
-    接收枯燥的战斗数据，输出精彩的战斗描写
-    """
     if not log_text:
         return ""
 
     prompt = f"""
-    你是一个奇幻小说的战斗解说员。
-    请根据以下【系统日志】，写一段简短、激烈、有画面感的战斗描述（50字左右）。
+    【角色设定】你是一位热血奇幻小说的金牌作家。
+    【任务】根据下方的【战斗数据】，写一段 50字以内 的精彩打斗描写。
 
     【要求】
-    1. 必须包含关键数值（造成多少伤害、剩余多少血）。
-    2. 不要单纯翻译日志，要加入动作描写（挥剑、格挡、鲜血飞溅）。
-    3. 如果是 Miss 或 闪避，要描写得很尴尬或很灵巧。
+    1. 动作感：不要只写“造成了伤害”，要写“剑锋划破空气”、“重重砸在盾牌上”。
+    2. 画面感：加入光影、声音、血液等细节描写。
+    3. 准确性：如果数据里有“暴击”，描述必须震撼；如果是“Miss”，描述要滑稽或惊险。
+    4. 结尾：必须包含 (造成xx点伤害) 或 (剩余HP:xx) 的数值提示。
 
-    【系统日志】：
+    【战斗数据】：
     {log_text}
     """
 
@@ -48,4 +43,4 @@ def narrate_battle(log_text):
         response = llm.invoke([HumanMessage(content=prompt)])
         return response.content
     except Exception as e:
-        return f"(AI 排线了，显示原始日志)\n{log_text}"
+        return f"（AI 描写生成失败，直接显示日志）\n{log_text}"
