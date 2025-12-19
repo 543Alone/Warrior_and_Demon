@@ -137,7 +137,7 @@ def start_battle(player, enemy_template, current_weapon):
                 try:
                     idx = int(input("> "))
                     # 调用 use_item，如果返回 True，说明真的吃了，消耗回合
-                    if use_item(player, idx):
+                    if use_item(player, idx,enemy=enemy):
                         player_acted = True  # 成功使用了才算行动
                     else:
                         print("   (你放下了背包，准备继续战斗)")

@@ -39,10 +39,17 @@ def check_level_up(player):
 
         # 防御力提升 (保底 +1，每两级至少加1点防御)
         old_def = player['def']
-        # 防御成长慢一点，这里做一个简单判断
-        player['def'] = int(old_def * scale)
-        if player['def'] == old_def:  # 如果乘完没变
-            player['def'] += 1
+        new_def = int(old_def * scale)
+        if new_def == old_def:  # 如果成长太少(比如防御本来就低)，强制+1
+            new_def += 1
+        player['def'] = new_def
+
+        # 速度提升(保底 +1，每两级至少加1点速度)
+        old_spd = player.get('spd', 10)
+        new_spd = int(old_spd * scale)
+        if new_spd == old_spd:
+            new_spd += 1
+        player['spd'] = new_spd
 
         # 升级回满血
         player['hp'] = player['max_hp']
@@ -52,6 +59,7 @@ def check_level_up(player):
         print(f"   ❤️ 生命上限: {old_hp} -> {player['max_hp']}")
         print(f"   ⚔️ 基础攻击: {old_atk} -> {player['base_atk']}")
         print(f"   🛡️ 基础防御: {old_def} -> {player['def']}")
+        print(f"   💨 基础速度: {old_spd} -> {player['spd']}")
         print(f"   ✨ 状态已完全恢复！")
         print("=" * 30 + "\n")
 

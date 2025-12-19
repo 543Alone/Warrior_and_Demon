@@ -128,17 +128,25 @@ def main_game_loop():
         elif choice == "3":
             # --- 状态栏更新 ---
             # 从 hero 字典里取装备
-            cur_w = hero['equipped_weapon']
-            cur_a = hero['equipped_armor']
+            cur_w = hero.get('equipped_weapon', {'name': '无', 'atk': 0})
+            cur_a = hero.get('equipped_armor', {'name': '无', 'def': 0, 'spd': 0.0})  # 获取防具
 
-            current_atk = hero['base_atk'] + cur_w['atk']
-            current_def = hero['def'] + cur_a['def']
+            current_atk = hero['base_atk'] + cur_w.get('atk', 0)
+            current_def = hero['def'] + cur_a.get('def', 0)
+
+            # 计算并显示速度
+            base_spd = hero.get('spd', 10)
+            armor_spd_mod = cur_a.get('spd', 0.0)  # 比如 -0.15
+            # 显示格式：20 (90%) 或者 20 (110%)
+            real_spd = int(base_spd * (1 + armor_spd_mod))
 
             print(f"\n{Colors.CYAN}═════════ 📊 角色状态 ═════════{Colors.END}")
-            print(f"🤴 英雄: {hero['name']}  (Lv.{int(hero['level'])})(EXP:{hero['exp']}/{hero['level'] * GAME_CONFIG["EXP_THRESHOLD_BASE"]})")
+            print(
+                f"🤴 英雄: {hero['name']}  (Lv.{int(hero['level'])})(EXP:{hero['exp']}/{hero['level'] * GAME_CONFIG["EXP_THRESHOLD_BASE"]})")
             print(f"❤️ HP: {hero['hp']}/{hero['max_hp']}")
             print(f"⚔️ 攻: {current_atk} (武: {cur_w['name']})")
             print(f"🛡️ 防: {current_def} (甲: {cur_a['name']})")
+            print(f"💨 速: {real_spd} (基础{base_spd} | 修正 {int(armor_spd_mod * 100)}%)")
             print("-" * 20)
 
             print(f"{Colors.YELLOW}🎒 背包清单:{Colors.END}")

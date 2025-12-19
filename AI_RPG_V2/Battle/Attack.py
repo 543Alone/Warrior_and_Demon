@@ -55,6 +55,13 @@ class CombatEngine:
         if weapon:
             hit_chance = weapon.get('hit_rate', hit_chance)
 
+        # ✅ [新增] 加上命中 Buff (敏捷药剂)
+        if 'buffs' in attacker:
+            for buff in attacker['buffs']:
+                if buff['type'] == 'hit':
+                    hit_chance += buff['value']
+                    # logs.append(f"   (Buff加成: 命中+{int(buff['value']*100)}%)") # 调试用
+
         # 2. 计算双方实时速度
         atk_spd = self._get_real_speed(attacker)
         def_spd = self._get_real_speed(defender)
@@ -132,6 +139,13 @@ class CombatEngine:
         total_atk = attacker.get('base_atk', 10)
         if weapon:
             total_atk += weapon.get('atk', 0)
+
+        # 加上攻击 Buff
+        if 'buffs' in attacker:
+            for buff in attacker['buffs']:
+                if buff['type'] == 'atk':
+                    total_atk += buff['value']
+                    # logs.append(f"   (Buff加成: 攻+{buff['value']})")
 
         # 圣剑特效
         if weapon and weapon.get('effect') == "demon_slayer_multiplier_2.5" and defender.get('name') == "魔王":

@@ -6,8 +6,9 @@
 @Author  ：Write Bug
 @Date    ：2025/12/10 09:36 
 """
-from Warehouse.Weapons import weapons_list
+from Monsters.Monsters import get_monster_by_name
 from Warehouse.Armor import armors_list
+from Warehouse.Weapons import weapons_list
 
 # 角色属性
 hero = {
@@ -17,27 +18,16 @@ hero = {
     "level": 1,
     "base_atk": 10,
     "def": 5,
-    "spd":5,
+    "spd": 8,
     "exp": 0,
     "bag": [weapons_list[0], armors_list[0]],  # 初始背包
-
     "equipped_weapon": weapons_list[0],
     "equipped_armor": armors_list[0],
 
     # 记录 Buff 列表
-    "buffs": []
+    "buffs": [],
+    "statuses": {}
 }
-
-demon = {
-    "name": "魔王",
-    "hp": 3000,
-    "max_hp": 3000,
-    "base_atk": 50,
-    "def": 10,
-    "spd":50,
-    "burn_stack": 0,
-    "loot": []
-}
-
+demon = get_monster_by_name("魔王")
 current_location = "新手村"
 current_enemy = None
