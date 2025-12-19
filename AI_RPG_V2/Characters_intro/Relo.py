@@ -17,6 +17,7 @@ hero = {
     "level": 1,
     "base_atk": 10,
     "def": 5,
+    "spd":5,
     "exp": 0,
     "bag": [weapons_list[0], armors_list[0]],  # 初始背包
 
@@ -33,6 +34,7 @@ demon = {
     "max_hp": 3000,
     "base_atk": 50,
     "def": 10,
+    "spd":50,
     "burn_stack": 0,
     "loot": []
 }

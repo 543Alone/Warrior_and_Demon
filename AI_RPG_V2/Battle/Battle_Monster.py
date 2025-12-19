@@ -9,19 +9,13 @@
 import random
 import time
 
-from Battle.Attack import attack_logic, GAME_CONFIG
+from Battle.Attack import attack_logic
 from Characters_intro.Bag import get_item_data_by_name, add_item_to_bag
 from Model.AI_Narrator import narrate_battle, generate_monster_intro
-from Setting.Abnormal_condition import process_damage
+from Setting.Abnormal_condition import StatusSystem
 from Setting.Level import check_level_up
 from Setting.Style import Colors, show_health_bar
 from Setting.Use_items import use_item
-
-
-def get_monster_intro(monster_name):
-    """让 LLM 生成怪物开场白"""
-    prompt = f"你是一只【{monster_name}】。玩家遇到了你，请你用凶狠或搞笑的语气说一句开场白（20字以内）。"
-    return "（LLM生成的开场白）"
 
 
 # 定义战斗
@@ -29,8 +23,23 @@ def start_battle(player, enemy_template, current_weapon):
     # 复制敌人数据
     print(f"\n" + "!" * 30)
     enemy = enemy_template.copy()
-    print(f"⚠️  遭遇战！一只 {Colors.RED}{enemy['name']}{Colors.END} 出现了！")
-    generate_monster_intro(enemy['name'])
+
+    # 确保双方都有 status 字段
+    if 'statuses' not in player: player['statuses'] = {}
+    if 'statuses' not in enemy: enemy['statuses'] = {}
+
+    # 确保怪物有 SPD，如果没有默认为 10
+    if 'spd' not in enemy: enemy['spd'] = 10
+
+    # 怪物登场
+    print(f"⚠️  遭遇战！一只 {Colors.RED}{enemy['name']}{Colors.END} (SPD: {enemy['spd']}) 出现了！")
+
+    # AI 生成挑衅台词
+    try:
+        generate_monster_intro(enemy['name'])
+    except:
+        print(f"👿 {enemy['name']}: 吼！！！")
+
     print("!" * 30)
 
     turn = 1
@@ -39,28 +48,64 @@ def start_battle(player, enemy_template, current_weapon):
         show_health_bar(player)
         show_health_bar(enemy)
 
+        # 速度判定
+        p_spd = player.get('spd', 10)
+        e_spd = enemy.get('spd', 10)
+
+        # 判断谁先手 (玩家速度 >= 怪物速度 则玩家先手)
+        player_first = p_spd >= e_spd
+
+        # --- 玩家菜单 ---
         print(f"\n{Colors.CYAN}[你的回合] 请选择行动：{Colors.END}")
-        print("1. ⚔️ 攻击 (Attack)")
-        print("2. 🎒 物品 (Item)")
-        print("3. 🏃 逃跑 (Flee)")
+        print("1.⚔️ 攻击(Attack)  2.🎒 物品(Item)  3.🏃 逃跑(Flee)")
 
         action = input("你的选择 (1-3): ")
 
-        player_acted = False  # 标记玩家是否采取了有效行动
+        player_acted = False  # 标记玩家是否有效消耗了回合
+
+        # =================================================
+        # CASE A: 怪物比你快 (且你要打架)，怪物先手！
+        # =================================================
+        if not player_first and action in ['1', '2']:
+            print(f"\n⚡ {enemy['name']} 动作比你快，抢先发动攻击！")
+            time.sleep(0.5)
+
+            # 怪物先动前，检查控制
+            is_skip, msg = StatusSystem.check_control(enemy)
+            if is_skip:
+                print(f"   {msg} (跳过攻击)")
+            else:
+                # 2. 怪物攻击
+                enemy_logs = attack_logic(enemy, player, weapons=None)
+                # 3. AI 播报
+                narrate_battle(enemy_logs, player, enemy)
+
+            # 检查玩家是否阵亡
+            if player['hp'] <= 0:
+                print(f"\n☠️ 你在敌人的快攻下倒下了...")
+                return False
+
+        # =================================================
+        # CASE B: 玩家行动阶段
+        # =================================================
 
         # --- 选项 1: 攻击 ---
         if action == "1":
-            logs = attack_logic(player, enemy, current_weapon)
-            # print(f"\n[系统日志]:\n{logs}")
-            # 调用AI
-            story = narrate_battle(logs, player, enemy)
-            # 保留原始数据供调试
-            # print(f"[系统原始数据]:\n{logs}")
+            # 玩家动前，检查控制 (如果有的话)
+            is_skip, msg = StatusSystem.check_control(player)
+            if is_skip:
+                print(f"   {msg} (无法行动)")
+            else:
+                # 2. 玩家攻击
+                logs = attack_logic(player, enemy, current_weapon)
+                # 3. AI 播报
+                narrate_battle(logs, player, enemy)
+
             player_acted = True
 
         # --- 选项 2: 使用物品 ---
         elif action == "2":
-            # 查看当前持续的Buff
+            # 显示 Buff 状态
             if 'buffs' in player and player['buffs']:
                 print(f"\n✨ 当前激活的状态 (Buffs):")
                 for buff in player['buffs']:
@@ -69,10 +114,11 @@ def start_battle(player, enemy_template, current_weapon):
                     print(f"   🔥 {buff['name']}: +{buff.get('value', 0)} (剩余 {buff['duration']} 回合)")
             else:
                 print(f"\n✨ 当前无增益状态")
-            if not player['bag']:
+
+            if not player.get('bag'):
                 print("   (背包空空如也，浪费了一次查看机会)")
             else:
-                # 简单列出背包
+                # 列出背包
                 print("\n🎒 战斗背包:")
                 for i, item in enumerate(player['bag']):
                     tag = ""
@@ -92,7 +138,7 @@ def start_battle(player, enemy_template, current_weapon):
                     idx = int(input("> "))
                     # 调用 use_item，如果返回 True，说明真的吃了，消耗回合
                     if use_item(player, idx):
-                        player_acted = True
+                        player_acted = True  # 成功使用了才算行动
                     else:
                         print("   (你放下了背包，准备继续战斗)")
                         # 没吃药，continue回到循环开头，不进入怪物回合
@@ -107,9 +153,14 @@ def start_battle(player, enemy_template, current_weapon):
             # 进阶版：比较 player['SPD'] 和 enemy['SPD']
             print("Trying to run away...")
             time.sleep(0.5)
-            if random.random() < 0.5:
-                print(f"💨 {Colors.GREEN}逃跑成功！你溜之大吉。{Colors.END}")
-                return True  # 逃跑算作存活，返回 True
+            # 简单算法：或者可以用 p_spd / e_spd 计算概率
+            escape_rate = 0.5
+            if p_spd > e_spd: escape_rate = 0.8  # 比它快容易跑
+            print(f"💨 {Colors.GREEN}逃跑成功！你溜之大吉。{Colors.END}")
+
+            if random.random() < escape_rate:
+                print(f"💨 {Colors.GREEN}逃跑成功！你利用速度优势溜了。{Colors.END}")
+                return True
             else:
                 print(f"🚫 {Colors.RED}逃跑失败！被 {enemy['name']} 拦住了！{Colors.END}")
                 player_acted = True  # 逃跑失败也算行动过，会挨打
@@ -119,11 +170,14 @@ def start_battle(player, enemy_template, current_weapon):
             print("❌ 无效的指令，请重新输入。")
             continue  # 跳过本次循环，重新选择
 
-        # 如果怪物死了，不用等它反击，直接胜利
+        # =================================================
+        # 胜利判定 (玩家行动后)
+        # =================================================
         if enemy['hp'] <= 0:
             print(f"\n🎉 胜利！打败了 {enemy['name']}！")
-            player['exp'] += enemy.get('exp', 0)
-            print(f"   获得经验: {enemy.get('exp', 0)}")
+            exp_gain = enemy.get('exp', 0)
+            player['exp'] += exp_gain
+            print(f"   获得经验: {exp_gain}")
 
             # 升级
             check_level_up(player)
@@ -136,34 +190,66 @@ def start_battle(player, enemy_template, current_weapon):
                     item_name = loot['item']
                     real_item = get_item_data_by_name(item_name)
                     if real_item:
-                        print(f"   🎁 哇！掉落了 [{item_name}]")
+                        print(f"   🎁 战利品！发现了 [{item_name}]")
                         add_item_to_bag(player, real_item)
+
+            # 战斗结束，清理临时状态
+            StatusSystem.clear_status(player)  # 可选：战斗后是否清空异常状态？
             return True
 
-        # --- 怪物回合 ---
-        if player_acted:
+        # =================================================
+        # CASE C: 怪物行动阶段 (后手)
+        # 如果玩家先动了，且怪物还没死，且怪物这回合还没动过(即非先手)
+        # =================================================
+        if player_first and player_acted:
             print(f"\n{Colors.RED}[敌方回合]{Colors.END}")
-            time.sleep(GAME_CONFIG["TEXT_SPEED"])
+            time.sleep(0.5)
 
-            # 结算玩家的 Buff 持续时间 (放在这里结算)
-            if 'buffs' in player:
-                for buff in player['buffs'][:]:
-                    buff['duration'] -= 1
-                    if buff['duration'] <= 0:
-                        print(f"   📉 你的 [{buff['name']}] 效果结束了。")
-                        player['buffs'].remove(buff)
+            # 1. 检查控制
+            is_skip, msg = StatusSystem.check_control(enemy)
+            if is_skip:
+                print(f"   {msg} (跳过攻击)")
+            else:
+                # 2. 怪物攻击
+                enemy_logs = attack_logic(enemy, player, weapons=None)
+                # 3. AI 播报
+                narrate_battle(enemy_logs, player, enemy)
 
-        # 怪物攻击
-        enemy_logs = attack_logic(enemy, player, weapons=None)  # 怪物不用武器
+            if player['hp'] <= 0:
+                print(f"\n☠️ 胜败乃兵家常事...")
+                return False
 
-        if enemy_logs:  # 确保有日志
-            enemy_story = narrate_battle(enemy_logs, player, enemy)
+        # =================================================
+        # 回合结束结算阶段 (Turn End Phase)
+        # =================================================
+        print(f"\n--- 回合结算 ---")
 
-        # 结算燃烧伤害
-        process_damage(enemy)
+        # 1. 结算异常状态 (燃烧、中毒、HOT)
+        p_logs = StatusSystem.resolve_turn_end(player)
+        for l in p_logs: print(f"   (你) {l}")
 
+        e_logs = StatusSystem.resolve_turn_end(enemy)
+        for l in e_logs: print(f"   (敌) {l}")
+
+        # 2. 结算 Buff 持续时间 (力量药剂等)
+        if 'buffs' in player and player['buffs']:
+            for buff in player['buffs'][:]:  # 切片复制遍历，防止删除出错
+                buff['duration'] -= 1
+                if buff['duration'] <= 0:
+                    print(f"   📉 [{buff['name']}] 的效果消失了。")
+                    player['buffs'].remove(buff)
+
+        # 3. 再次检查死亡 (因为可能被烧死/毒死)
         if player['hp'] <= 0:
-            print(f"\n☠️ 胜败乃兵家常事... 大侠请重新来过。")
+            print(f"\n☠️ 你倒在了异常状态的折磨下...")
             return False
+
+        if enemy['hp'] <= 0:
+            print(f"\n🎉 {enemy['name']} 痛苦地倒下了！(异常状态击杀)")
+            # 这里简单处理，如果毒死也给经验，逻辑同上
+            player['exp'] += enemy.get('exp', 0)
+            check_level_up(player)
+            # 掉落略...
+            return True
 
         turn += 1

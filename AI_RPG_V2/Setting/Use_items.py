@@ -61,7 +61,7 @@ def use_item(player, item_index):
 
     # 力量药剂
     elif item_type == 'buff_atk':
-    # 添加buff效果，将在战斗中持续多个回合
+        # 添加buff效果，将在战斗中持续多个回合
         if 'buffs' not in player:
             player['buffs'] = []
 
@@ -78,6 +78,11 @@ def use_item(player, item_index):
 
         print(f"   💪 {player['name']} 获得了 {item['name']} 效果！(攻击力+{item['value']}, 持续{real_duration}回合)")
         used_success = True
+
+    elif item_type == "damage":
+
+        ...
+
 
     # 其他未知物品
     else:

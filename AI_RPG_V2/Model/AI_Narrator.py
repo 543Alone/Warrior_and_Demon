@@ -49,7 +49,7 @@ def narrate_battle(log_text, player, enemy):
         context_hint = f"【斩杀前奏】敌人({enemy['name']})已经是风中残烛，只剩下最后一口气，它的防守已经溃散。"
 
     prompt = f"""
-    【角色设定】你是一位西方魔法世界奇幻小说的金牌作家。
+    【角色设定】你是一位西方魔法世界小说的金牌作家。
     【任务】根据下方的【战斗数据】，写一段 100字以内 的精彩打斗描写。
     
     【当前战局】：{context_hint}
@@ -109,7 +109,7 @@ def generate_monster_intro(monster_name):
         for chunk in llm.stream([HumanMessage(content=prompt)]):
             content = chunk.content
             if content:
-                # 调用你写好的打字机效果，速度稍微慢一点更有压迫感 (0.05)
+                # 调用打字机效果，速度稍微慢一点更有压迫感 (0.05)
                 stream_print(content, speed=0.05)
                 full_text += content
     except Exception as e:
