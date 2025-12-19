@@ -185,16 +185,37 @@ def start_battle(player, enemy_template, current_weapon):
             # print(f"恭喜升级~，目前等级为 {player['level']}")
 
             # 掉落逻辑
-            for loot in enemy.get('loot', []):
-                if random.random() < loot['chance']:
-                    item_name = loot['item']
-                    real_item = get_item_data_by_name(item_name)
-                    if real_item:
-                        print(f"   🎁 战利品！发现了 [{item_name}]")
-                        add_item_to_bag(player, real_item)
+            loot_list = enemy.get('loot', [])
+            dropped_items = []
 
-            # 战斗结束，清理临时状态
-            StatusSystem.clear_status(player)  # 可选：战斗后是否清空异常状态？
+            # 1. 正常随机掉落
+            for loot in loot_list:
+                # 幸运加成：也就是你可以给 player 加一个 luck 属性，这里先简单处理
+                # 比如：BOSS 战掉落率翻倍
+                chance_multiplier = 1.0
+                if enemy['max_hp'] >= 500:  # 简单的 BOSS 判定
+                    chance_multiplier = 1.5
+
+                if random.random() < (loot['chance'] * chance_multiplier):
+                    dropped_items.append(loot['item'])
+
+            # 2. 保底机制 (Bad Luck Protection)
+            # 如果什么都没掉，且怪物有掉落列表
+            if not dropped_items and loot_list:
+                # 假设 loot_list 是按稀有度排的，那我们可能要取 chance 最大的
+                best_chance_item = max(loot_list, key=lambda x: x['chance'])
+                print(f"   (保底触发) 运气不好，但你还是在尸体上翻到了点东西...")
+                dropped_items.append(best_chance_item['item'])
+
+            # 3. 结算进背包
+            for item_name in dropped_items:
+                real_item = get_item_data_by_name(item_name)
+                if real_item:
+                    print(f"   🎁 战利品！发现了 [{item_name}]")
+                    add_item_to_bag(player, real_item)
+
+            # 战斗结束清理状态
+            StatusSystem.clear_status(player)
             return True
 
         # =================================================

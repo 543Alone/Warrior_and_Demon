@@ -31,7 +31,7 @@ def wander_action(player):
         dice = random.random()
         if dice < 0.2:
             print("   💬 你遇到了村长，但他正在午睡。")
-        elif dice < 0.4:
+        elif dice < 0.5:
             print("   🍀 运气不错！你在草丛里捡到了一个 [🍎 小苹果]！")
             item = get_item_data_by_name("🍎 小苹果")
             if item:
@@ -45,7 +45,7 @@ def wander_action(player):
     dice = random.random()
     print(f"开始投掷命运的骰子：{dice}")
 
-    if dice <= encounter_rate:
+    if dice <= encounter_rate + 0.2:
         spawn_key = current_location_data.get("spawn_table")
         enemy_template = None
 
@@ -120,7 +120,7 @@ def wander_action(player):
         return True
 
     # 没遇到怪，捡垃圾逻辑
-    elif dice < encounter_rate + 0.2:
+    elif dice < encounter_rate + 0.4:
         findable_items = ["🍎 小苹果", "💪 力量药剂", "生锈铁剑"]
         item_name = random.choice(findable_items)
         real_item = get_item_data_by_name(item_name)
@@ -131,11 +131,26 @@ def wander_action(player):
 
     # 纯路过
     else:
-        flavors = [
-            "🍂 踩到了枯树枝，发出咔嚓的声音。",
-            "💨 一阵阴风吹过，你打了个寒颤。",
-            "👣 走了半天，好像又绕回了原地..."
-        ]
+        if "森林" in location_name:
+            flavors = [
+                "🍂 踩到了枯树枝，惊起了一群乌鸦。",
+                "🌲 树影婆娑，仿佛有什么东西在盯着你。",
+                "🍄 你看到一朵发光的蘑菇，但没敢去碰。"
+            ]
+        elif "矿洞" in location_name:
+            flavors = [
+                "💧 滴答... 滴答... 水滴声在空旷的洞穴里回荡。",
+                "⛏️ 脚下踢到了一把断掉的矿镐。",
+                "🦇 头顶传来蝙蝠扑腾翅膀的声音。"
+            ]
+        else:
+            # 通用文案
+            flavors = [
+                "💨 一阵风吹过，卷起了地上的尘土。",
+                "👣 走了半天，好像又绕回了原地...",
+                "☀️ 阳光有些刺眼，你眯起了眼睛。"
+            ]
+
         print(f"   {random.choice(flavors)}")
 
     return True

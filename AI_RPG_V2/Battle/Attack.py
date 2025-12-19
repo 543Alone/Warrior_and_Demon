@@ -25,7 +25,11 @@ class CombatEngine:
         "CRIT_DMG": 1.5,  # 暴击伤害
         "BASE_HIT": 0.9,  # 命中率
         "SPD_DODGE_RATIO": 0.02,  # 每1点速度差提供 2% 闪避
-        "MAX_DODGE": 0.75  # 闪避上限 75% (防止无敌)
+        "MAX_DODGE": 0.75,  # 闪避上限 75% (防止无敌)
+        "EXP_THRESHOLD_BASE": 100,  # 升级所需经验基数 (Level.py 用)
+        "LEVEL_UP_SCALING": 1.15,  # 属性成长倍率 (Level.py 用)
+        "TEXT_SPEED": 0.5,  # 战斗文本显示速度 (Battle_Monster.py 用)
+        "RANDOM_SEED": None  # 随机种子 (可选)
     }
 
     def __init__(self, config=None):
@@ -214,3 +218,5 @@ default_engine = CombatEngine()
 
 def attack_logic(attacker, defender, weapons=None):
     return default_engine.process_attack(attacker, defender, weapons)
+
+GAME_CONFIG = CombatEngine.DEFAULT_CONFIG
