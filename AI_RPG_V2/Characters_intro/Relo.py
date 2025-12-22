@@ -20,6 +20,7 @@ hero = {
     "def": 5,
     "spd": 8,
     "exp": 0,
+    "lock": 0,
     "bag": [weapons_list[0], armors_list[0]],  # 初始背包
     "equipped_weapon": weapons_list[0],
     "equipped_armor": armors_list[0],

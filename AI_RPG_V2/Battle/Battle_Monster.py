@@ -137,7 +137,7 @@ def start_battle(player, enemy_template, current_weapon):
                 try:
                     idx = int(input("> "))
                     # 调用 use_item，如果返回 True，说明真的吃了，消耗回合
-                    if use_item(player, idx,enemy=enemy):
+                    if use_item(player, idx, enemy=enemy):
                         player_acted = True  # 成功使用了才算行动
                     else:
                         print("   (你放下了背包，准备继续战斗)")
@@ -202,10 +202,11 @@ def start_battle(player, enemy_template, current_weapon):
             # 2. 保底机制 (Bad Luck Protection)
             # 如果什么都没掉，且怪物有掉落列表
             if not dropped_items and loot_list:
-                # 假设 loot_list 是按稀有度排的，那我们可能要取 chance 最大的
-                best_chance_item = max(loot_list, key=lambda x: x['chance'])
-                print(f"   (保底触发) 运气不好，但你还是在尸体上翻到了点东西...")
-                dropped_items.append(best_chance_item['item'])
+                if random.random() < 0.5:
+                    # 假设 loot_list 是按稀有度排的，那我们可能要取 chance 最大的
+                    best_chance_item = max(loot_list, key=lambda x: x['chance'])
+                    print(f"   (保底触发) 运气不好，但你还是在尸体上翻到了点东西...")
+                    dropped_items.append(best_chance_item['item'])
 
             # 3. 结算进背包
             for item_name in dropped_items:
