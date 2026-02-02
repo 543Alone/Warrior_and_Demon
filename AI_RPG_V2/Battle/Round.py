@@ -191,6 +191,9 @@ def main_game_loop():
             break
 
 
+        elif choice == 'exit'.lower():
+            break
+
         # 选项 9: BOSS战
         elif choice == "9" and location_data.get("is_boss_room"):
             # Boss战
