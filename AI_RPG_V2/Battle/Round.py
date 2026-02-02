@@ -186,6 +186,10 @@ def main_game_loop():
         # 保存
         elif choice == '5':
             save_game()
+        elif choice == 'exit'.lower():
+            # 退出停止
+            break
+
 
         # 选项 9: BOSS战
         elif choice == "9" and location_data.get("is_boss_room"):
