@@ -10,6 +10,7 @@ from Warehouse.Weapons import weapons_list
 from Warehouse.Armor import armors_list
 from Warehouse.Items import items_list
 
+
 def get_item_data_by_name(item_name):
     # 搜索武器库
     for w in weapons_list:
@@ -21,6 +22,7 @@ def get_item_data_by_name(item_name):
     for i in items_list:
         if i['name'] == item_name: return i
     return None
+
 
 def add_item_to_bag(player, new_item):
     """
@@ -36,16 +38,16 @@ def add_item_to_bag(player, new_item):
     # 检查背包里是否已有同名物品
     for item in player['bag']:
         if item['name'] == new_item['name']:
-            # 找到数量相加
-            # 如果旧物品还没quantity字段，默认视为1
-            current_qty = item.get('quantity', 1)
-            # 获取新物品的数量（通常是1，但也可能是掉落了5个）
-            add_qty = item_to_store.get('quantity', 1)
+            # 防止把带锻造词条的装备和白板装备叠在一起！
+            # 只有当两者的 affixes 完全一致（通常都是没有）才允许堆叠
+            if str(item.get('affixes', [])) == str(item_to_store.get('affixes', [])):
+                current_qty = item.get('quantity', 1)
+                add_qty = item_to_store.get('quantity', 1)
 
-            item['quantity'] = current_qty + add_qty
-            print(f"   🎒 {item['name']} 数量 +{add_qty} (当前: {item['quantity']})")
-            return
+                item['quantity'] = current_qty + add_qty
+                print(f"    {item['name']} 数量 +{add_qty} (当前: {item['quantity']})")
+                return
 
     # 没找到，将拷贝后的对象放入背包
     player['bag'].append(item_to_store)
-    print(f"   🎒 获得新物品: {item_to_store['name']}")
+    print(f"    获得新物品: {item_to_store['name']}")

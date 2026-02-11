@@ -166,7 +166,7 @@ monsters_list = [
             {"item": "🩸 嗜血魔剑", "chance": 0.1},  # 欧皇时刻
             {"item": "🔥 烈焰魔剑", "chance": 0.3},  # 欧皇时刻
             {"item": "🗡 皇家骑士巨剑", "chance": 0.7},
-            {"item": "🛡️ 皇家骑士板甲", "chance": 0.7},
+            {"item": "🛡️ 骑士板甲", "chance": 0.7},
         ]
     }
 ]

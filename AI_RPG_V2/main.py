@@ -61,8 +61,6 @@ def dynamic_gradient(text, start_rgb, end_rgb, duration=10):
         print()  # 换行，避免后续输出在同一行
 
 
-
-
 # 按装订区域中的绿色按钮以运行脚本。
 if __name__ == '__main__':
     print_hi('PyCharm')

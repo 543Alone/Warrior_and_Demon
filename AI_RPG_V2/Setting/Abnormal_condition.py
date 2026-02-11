@@ -125,4 +125,3 @@ class StatusSystem:
         """战斗结束后清理临时状态 (可选)"""
         if 'statuses' in character:
             character['statuses'] = {}
-

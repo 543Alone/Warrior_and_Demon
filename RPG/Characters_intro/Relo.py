@@ -18,9 +18,10 @@ hero = {
     "base_atk": 10,  # 基础攻击力
     "def": 5,  # 基础防御
     "exp": 0,
+    "gold": 100, # 初始金币
     "SPD": 10,  # 基础移速，影响先手和逃跑
     "LUCK": 5,  # 幸运值，影响暴击和掉落
-    "bag": [weapons_list[0], armors_list[0]],
+    "bag": [weapons_list[0].copy(), armors_list[0].copy()], # 用copy防止修改原模板
 }
 
 demon = {

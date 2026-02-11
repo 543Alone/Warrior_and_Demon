@@ -7,6 +7,9 @@
 @Date    ：2025/12/12 10:18 
 """
 
+from Characters_intro import Relo
+
+
 def use_item(player, item_index, enemy=None):
     """
     使用背包的物品
@@ -35,13 +38,47 @@ def use_item(player, item_index, enemy=None):
             return False
 
         recover = item.get('value', 0)
+        # 支持百分比恢复，例如 '30%'
+        if isinstance(recover, str) and recover.endswith('%'):
+            pct = float(recover.strip('%')) / 100.0
+            recover = int(player['max_hp'] * pct)
+            
         player['hp'] = min(player['max_hp'], player['hp'] + recover)
         print(f"😋 你吃掉了 [{item['name']}]")
-        print(f"   💚 恢复 {recover} 点生命 (HP: {player['hp']}/{player['max_hp']})")
+        print(f"   恢复 {recover} 点生命 (HP: {player['hp']}/{player['max_hp']})")
         used_success = True
 
-    # 3. 净化类 (Coffee) ->StatusSystem
+    # 2.5 回蓝类 (Restore MP)
+    elif item_type == 'restore_mp':
+        if 'max_mp' not in player:
+            print("❌ 你连魔力都没有，喝这个干嘛？")
+            return False
+        if player['mp'] >= player['max_mp']:
+            print("❌ 你现在的魔力已经满溢了！")
+            return False
+
+        recover = item.get('value', 0)
+        player['mp'] = min(player['max_mp'], player['mp'] + recover)
+        print(f"😋 你喝下了 [{item['name']}]")
+        print(f"   💧 恢复 {recover} 点法力 (MP: {player['mp']}/{player['max_mp']})")
+        used_success = True
+
+    # 2.6 回城卷轴 (Teleport)
+    elif item_type == 'teleport':
+        if enemy is not None:
+            print("❌ 战斗中太危险了，撕裂卷轴的读条会被打断！")
+            return False
+
+        print(f"✨ 你撕碎了 [{item['name']}]，化作一道光芒消失了...")
+        Relo.current_location = "新手村"
+        used_success = True
+
+    # 3. 净化类与特殊纪念品 (Coffee, 龙之宝玉等) ->StatusSystem
     elif item_type == 'special':
+        if item['name'] in ["💎 龙之宝玉", "世界和平奖章"]:
+            print(f"   ✨ 这是 [{item['name']}]，非常珍贵！使用它不会发生什么，建议留作纪念或者卖给商人！")
+            return False  # 不消耗
+            
         removed = []
         # 检查新版状态系统
         if 'statuses' in player:
@@ -67,25 +104,33 @@ def use_item(player, item_index, enemy=None):
 
         # 解析类型：buff_atk -> atk, buff_hit -> hit
         buff_type = item_type.split('_')[1]
-        real_duration = item.get('duration', 3)
+        
+        # 处理无限持续时间
+        raw_duration = item.get('duration', 3)
+        real_duration = 9999 if raw_duration == '+∞' else raw_duration
 
         # 构造 Buff 对象
         buff = {
             'name': item['name'],
             'type': buff_type,
             'value': item['value'],
-            'duration': real_duration + 1 # +1 抵消当回合消耗
+            'duration': real_duration + 1  # +1 抵消当回合消耗
         }
         player['buffs'].append(buff)
 
-        desc = "攻击力" if buff_type == 'atk' else "命中率"
-        val_str = f"+{item['value']}" if buff_type == 'atk' else f"+{int(item['value']*100)}%"
+        if buff_type == 'atk': 
+            desc = "攻击力"
+            val_str = f"+{item['value']}"
+        elif buff_type == 'hit': 
+            desc = "命中率"
+            val_str = f"+{int(item['value'] * 100)}%"
+        else:
+            desc = "神秘属性"
+            val_str = f"+{item['value']}"
 
-        print(f"   🧪 咕嘟咕嘟... [{item['name']}] 生效！")
-        print(f"   ✨ {desc} {val_str} (持续 {real_duration} 回合)")
+        print(f"   咕嘟咕嘟... [{item['name']}] 生效！")
+        print(f"   ✨ {desc} {val_str} (持续 {raw_duration} 回合)")
         used_success = True
-
-        print(f"   💪 {player['name']} 获得了 {item['name']} 效果！(攻击力+{item['value']}, 持续{real_duration}回合)")
     # 5. 伤害类 (Grenade)
     elif item_type == 'damage':
         if enemy is None:

@@ -1,40 +1,31 @@
 # -*- coding: UTF-8 -*-
-"""
-@Project ：LangGraph 
-@File    ：Battle_Monster.py
-@IDE     ：PyCharm 
-@Author  ：Write Bug
-@Date    ：2025/12/10 15:33 
-"""
 import random
 import time
 
 from Battle.Attack import attack_logic
+from Characters_intro import Relo
 from Characters_intro.Bag import get_item_data_by_name, add_item_to_bag
 from Model.AI_Narrator import narrate_battle, generate_monster_intro
+from Model.AI_Companion import get_companion_action
 from Setting.Abnormal_condition import StatusSystem
 from Setting.Level import check_level_up
 from Setting.Style import Colors, show_health_bar
 from Setting.Use_items import use_item
 
 
-# 定义战斗
 def start_battle(player, enemy_template, current_weapon):
-    # 复制敌人数据
     print(f"\n" + "!" * 30)
     enemy = enemy_template.copy()
 
-    # 确保双方都有 status 字段
-    if 'statuses' not in player: player['statuses'] = {}
+    # 初始化状态
     if 'statuses' not in enemy: enemy['statuses'] = {}
-
-    # 确保怪物有 SPD，如果没有默认为 10
     if 'spd' not in enemy: enemy['spd'] = 10
 
-    # 怪物登场
-    print(f"⚠️  遭遇战！一只 {Colors.RED}{enemy['name']}{Colors.END} (SPD: {enemy['spd']}) 出现了！")
+    for p in Relo.party:
+        if 'statuses' not in p: p['statuses'] = {}
 
-    # AI 生成挑衅台词
+    print(f"  遭遇战！一只 {Colors.RED}{enemy['name']}{Colors.END} (SPD: {enemy['spd']}) 出现了！")
+
     try:
         generate_monster_intro(enemy['name'])
     except:
@@ -43,235 +34,313 @@ def start_battle(player, enemy_template, current_weapon):
     print("!" * 30)
 
     turn = 1
-    while player['hp'] > 0 and enemy['hp'] > 0:
+    # 战斗循环条件：队伍里有人存活，且敌人存活
+    while any(p['hp'] > 0 for p in Relo.party) and enemy['hp'] > 0:
         print(f"\n═══════ Round {turn} ═══════")
-        show_health_bar(player)
-        show_health_bar(enemy)
 
-        # 速度判定
-        p_spd = player.get('spd', 10)
-        e_spd = enemy.get('spd', 10)
+        # 排序行动队列（按速度降序）
+        combatants = [p for p in Relo.party if p['hp'] > 0] + [enemy]
+        combatants.sort(key=lambda x: x.get('spd', 10), reverse=True)
 
-        # 判断谁先手 (玩家速度 >= 怪物速度 则玩家先手)
-        player_first = p_spd >= e_spd
+        # 显示血条
+        for c in combatants:
+            show_health_bar(c)
 
-        # --- 玩家菜单 ---
-        print(f"\n{Colors.CYAN}[你的回合] 请选择行动：{Colors.END}")
-        print("1.⚔️ 攻击(Attack)  2.🎒 物品(Item)  3.🏃 逃跑(Flee)")
+        for actor in combatants:
+            # 在队列中可能已经死了
+            if actor['hp'] <= 0 or enemy['hp'] <= 0:
+                continue
 
-        action = input("你的选择 (1-3): ")
-
-        player_acted = False  # 标记玩家是否有效消耗了回合
-
-        # =================================================
-        # CASE A: 怪物比你快 (且你要打架)，怪物先手！
-        # =================================================
-        if not player_first and action in ['1', '2']:
-            print(f"\n⚡ {enemy['name']} 动作比你快，抢先发动攻击！")
-            time.sleep(0.5)
-
-            # 怪物先动前，检查控制
-            is_skip, msg = StatusSystem.check_control(enemy)
+            # 检查控制状态
+            is_skip, msg = StatusSystem.check_control(actor)
             if is_skip:
-                print(f"   {msg} (跳过攻击)")
-            else:
-                # 2. 怪物攻击
-                enemy_logs = attack_logic(enemy, player, weapons=None)
-                # 3. AI 播报
-                narrate_battle(enemy_logs, player, enemy)
+                print(f"\n⚡ {actor['name']} 回合:")
+                print(f"   {msg} (跳过行动)")
+                continue
 
-            # 检查玩家是否阵亡
-            if player['hp'] <= 0:
-                print(f"\n☠️ 你在敌人的快攻下倒下了...")
-                return False
+            if actor == Relo.hero:
+                # 勇士回合（手动输入）
+                print(f"\n{Colors.CYAN}[你的回合] 请选择行动：{Colors.END}")
+                while True:
+                    available_skills = ["attack", "flee", "item"]
+                    if Relo.hero.get('equipped_weapon') and 'weapon_skill' in Relo.hero['equipped_weapon']:
+                        available_skills.insert(1, Relo.hero['equipped_weapon']['weapon_skill'])
 
-        # =================================================
-        # CASE B: 玩家行动阶段
-        # =================================================
+                    skill_str_list = []
+                    for i, sk in enumerate(available_skills):
+                        skill_str_list.append(f"{i + 1}. {sk}")
 
-        # --- 选项 1: 攻击 ---
-        if action == "1":
-            # 玩家动前，检查控制 (如果有的话)
-            is_skip, msg = StatusSystem.check_control(player)
-            if is_skip:
-                print(f"   {msg} (无法行动)")
-            else:
-                # 2. 玩家攻击
-                logs = attack_logic(player, enemy, current_weapon)
-                # 3. AI 播报
-                narrate_battle(logs, player, enemy)
+                    skill_menu = "  ".join(skill_str_list)
+                    print(f"你的行动:  {skill_menu}")
+                    cmd = input("> ")
 
-            player_acted = True
+                    # 根据可用的序号来解析
+                    action = "attack"
+                    if cmd.isdigit():
+                        idx = int(cmd) - 1
+                        if 0 <= idx < len(available_skills):
+                            action = available_skills[idx]
 
-        # --- 选项 2: 使用物品 ---
-        elif action == "2":
-            # 显示 Buff 状态
-            if 'buffs' in player and player['buffs']:
-                print(f"\n✨ 当前激活的状态 (Buffs):")
-                for buff in player['buffs']:
-                    # 显示名称、数值和剩余回合
-                    # 比如：力量药剂: +10 (剩余 3 回合)
-                    print(f"   🔥 {buff['name']}: +{buff.get('value', 0)} (剩余 {buff['duration']} 回合)")
-            else:
-                print(f"\n✨ 当前无增益状态")
-
-            if not player.get('bag'):
-                print("   (背包空空如也，浪费了一次查看机会)")
-            else:
-                # 列出背包
-                print("\n🎒 战斗背包:")
-                for i, item in enumerate(player['bag']):
-                    tag = ""
-                    if item.get('type') == 'heal':
-                        tag = "(可食用)"
-                    elif item.get('type', '').startswith('buff'):
-                        tag = "(Buff药)"
-                    qty = item.get('quantity', 1)
-                    # 如果数量大于 1，就显示 xN，否则不显示
-                    qty_str = f" x{qty}" if qty > 1 else ""
-
-                    # 把 qty_str 加到 print 里
-                    print(f"   [{i}] {item['name']}{qty_str} {tag}")
-
-                print("输入序号使用 (输入其他取消):")
-                try:
-                    idx = int(input("> "))
-                    # 调用 use_item，如果返回 True，说明真的吃了，消耗回合
-                    if use_item(player, idx, enemy=enemy):
-                        player_acted = True  # 成功使用了才算行动
+                    if action == "flee":
+                        escape_rate = 0.5
+                        if actor.get('spd', 10) > enemy.get('spd', 10): escape_rate = 0.8
+                        if random.random() < escape_rate:
+                            print(f"💨 {Colors.GREEN}逃跑成功！你溜之大吉。{Colors.END}")
+                            return True
+                        else:
+                            print(f" {Colors.RED}逃跑失败！被拦住了！{Colors.END}")
+                            break
+                    elif action == "item":
+                        # ====== 使用物品逻辑 ======
+                        print(" 选择你要使用的物品 (输入序号，返回按 q):")
+                        for i, item in enumerate(Relo.hero.get('bag', [])):
+                            print(f"  [{i}] {item['name']}")
+                        item_cmd = input("> ")
+                        if item_cmd.isdigit():
+                            if use_item(Relo.hero, int(item_cmd), enemy=enemy):
+                                break
+                        else:
+                            continue
                     else:
-                        print("   (你放下了背包，准备继续战斗)")
-                        # 没吃药，continue回到循环开头，不进入怪物回合
-                        continue
-                except:
-                    print("   (取消操作)")
-                    continue
+                        # 武器专属技能或者普通攻击
+                        if action == "ragnarok" and Relo.hero.get('mp', 0) >= 40:
+                            Relo.hero['mp'] -= 40
+                            print("   ☄️ 诸神的黄昏降临，毁天灭地的一击！")
+                            original_atk = Relo.hero['base_atk']
+                            Relo.hero['base_atk'] *= 2.5
+                            logs = attack_logic(Relo.hero, enemy, weapons=current_weapon)
+                            Relo.hero['base_atk'] = original_atk
+                            narrate_battle(logs, Relo.hero, enemy)
+                            break
+                        elif action == "shadow_strike" and Relo.hero.get('mp', 0) >= 20:
+                            Relo.hero['mp'] -= 20
+                            print("    遁入暗影，一击必杀！")
+                            if 'buffs' not in Relo.hero: Relo.hero['buffs'] = []
+                            Relo.hero['buffs'].append(
+                                {'type': 'crit_rate', 'name': '必定暴击', 'value': 1.0, 'duration': 1})
+                            logs = attack_logic(Relo.hero, enemy, weapons=current_weapon)
+                            narrate_battle(logs, Relo.hero, enemy)
+                            break
+                        elif action == "holy_light" and Relo.hero.get('mp', 0) >= 50:
+                            Relo.hero['mp'] -= 50
+                            print("    大天使之杖闪耀，降下神圣之光！")
+                            for p in [x for x in Relo.party if x['hp'] > 0]:
+                                heal = 150
+                                p['hp'] = min(p.get('max_hp', 100), p['hp'] + heal)
+                                print(f"    {p['name']} 恢复了 {heal} 点生命值！")
+                            break
+                        elif action == "wind_arrow" and Relo.hero.get('mp', 0) >= 30:
+                            Relo.hero['mp'] -= 30
+                            print("    穿风神弓拉满，箭矢如狂风暴雨！")
+                            hits = random.randint(2, 3)
+                            for i in range(hits):
+                                logs = attack_logic(Relo.hero, enemy, weapons=current_weapon)
+                                narrate_battle(logs, Relo.hero, enemy)
+                                if enemy['hp'] <= 0: break
+                            break
+                        else:
+                            if action != "attack":
+                                if Relo.hero.get('mp', 0) >= 20:
+                                    Relo.hero['mp'] -= 20
+                                    print(f" 勇士释放了武器专属技能：【{action}】！")
+                                else:
+                                    print(f" MP不足，只能进行普通攻击！")
+                                    action = "attack"
 
-        # --- 选项 3: 逃跑 ---
-        elif action == "3":
-            # 简单的逃跑算法：50% 概率
-            # 进阶版：比较 player['SPD'] 和 enemy['SPD']
-            print("Trying to run away...")
-            time.sleep(0.5)
-            # 简单算法：或者可以用 p_spd / e_spd 计算概率
-            escape_rate = 0.5
-            if p_spd > e_spd: escape_rate = 0.8  # 比它快容易跑
-            print(f"💨 {Colors.GREEN}逃跑成功！你溜之大吉。{Colors.END}")
+                            logs = attack_logic(Relo.hero, enemy,
+                                                current_weapon if action == "attack" else current_weapon)
+                            narrate_battle(logs, Relo.hero, enemy)
+                            break
 
-            if random.random() < escape_rate:
-                print(f"💨 {Colors.GREEN}逃跑成功！你利用速度优势溜了。{Colors.END}")
-                return True
+            elif actor in Relo.party:
+                # AI 伙伴回合
+                print(f"\n{Colors.PURPLE}[{actor['name']} 的回合]{Colors.END}")
+                decision = get_companion_action(actor, Relo.party, enemy)
+                act = decision.get('action')
+                target_name = decision.get('target_name', enemy['name'])
+
+                # MP 检查 (如果释放了非普通攻击技能，消耗 20 MP)
+                if act != 'attack':
+                    if actor.get('mp', 0) >= 20:
+                        actor['mp'] -= 20
+                    else:
+                        print(f"   ( MP不足，{actor['name']} 改为普通攻击！)")
+                        act = "attack"
+
+                # 寻找目标对象
+                target = None
+                if target_name == enemy['name']:
+                    target = enemy
+                else:
+                    for p in Relo.party:
+                        if p['name'] == target_name: target = p
+                if not target: target = enemy  # 默认找敌人
+
+                if act == "attack":
+                    logs = attack_logic(actor, enemy, weapons=None)
+                    narrate_battle(logs, actor, enemy)
+                elif act == "heal":
+                    heal_amt = int(actor.get('base_atk', 20) * 1.5)
+                    target['hp'] = min(target.get('max_hp', 100), target['hp'] + heal_amt)
+                    print(f"    {actor['name']} 施展了治愈术，{target['name']} 恢复了 {heal_amt} 点 HP！")
+                elif act == "buff":
+                    print(f"    {actor['name']} 释放了增益魔法！")
+                    if 'buffs' not in target: target['buffs'] = []
+                    # 刺客给队友加暴击、速度
+                    target['buffs'].append({"type": "crit_rate", "name": "迅捷指令", "value": 0.2, "duration": 3})
+                    target['buffs'].append({"type": "spd", "name": "迅捷指令", "value": 0.5, "duration": 3})
+                    print(f"    {target['name']} 的速度和暴击率提升了！")
+                elif act == "debuff":
+                    print(f"    {actor['name']} 对 {enemy['name']} 施放了破甲诅咒！防御下降！")
+                    if 'buffs' not in enemy: enemy['buffs'] = []
+                    enemy['buffs'].append({'name': '破甲诅咒', 'type': 'def', 'value': -10, 'duration': 3})
+                elif act == "shield":
+                    if 'buffs' not in target: target['buffs'] = []
+                    target['buffs'].append({'name': '自然护盾', 'type': 'def', 'value': 20, 'duration': 3})
+                    target['buffs'].append({'name': '精灵庇护', 'type': 'def_percent', 'value': 0.5, 'duration': 3})
+                    print(f"    {actor['name']} 为 {target['name']} 施加了【自然护盾】！防御大幅提升！")
+                else:
+                    wep = actor.get('equipped_weapon')
+                    if act not in ["attack", "heal", "buff", "debuff", "shield"]:
+                        print(f"    {actor['name']} 释放了武器绝技：【{act}】！")
+
+                        if act == "ragnarok" and actor.get('mp', 0) >= 40:
+                            actor['mp'] -= 40
+                            print("    诸神的黄昏降临，毁天灭地的一击！")
+                            # 增加临时攻击力
+                            original_atk = actor['base_atk']
+                            actor['base_atk'] *= 2.5
+                            logs = attack_logic(actor, enemy, weapons=wep)
+                            actor['base_atk'] = original_atk
+                            narrate_battle(logs, actor, enemy)
+
+                        elif act == "shadow_strike" and actor.get('mp', 0) >= 20:
+                            actor['mp'] -= 20
+                            print("    遁入暗影，一击必杀！")
+                            if 'buffs' not in actor: actor['buffs'] = []
+                            actor['buffs'].append(
+                                {'type': 'crit_rate', 'name': '必定暴击', 'value': 1.0, 'duration': 1})
+                            logs = attack_logic(actor, enemy, weapons=wep)
+                            narrate_battle(logs, actor, enemy)
+
+                        elif act == "holy_light" and actor.get('mp', 0) >= 50:
+                            actor['mp'] -= 50
+                            print("    大天使之杖闪耀，降下神圣之光！")
+                            for p in [x for x in Relo.party if x['hp'] > 0]:
+                                heal = 150
+                                p['hp'] = min(p.get('max_hp', 100), p['hp'] + heal)
+                                print(f"    {p['name']} 恢复了 {heal} 点生命值！")
+
+                        elif act == "wind_arrow" and actor.get('mp', 0) >= 30:
+                            actor['mp'] -= 30
+                            print("    穿风神弓拉满，箭矢如狂风暴雨！")
+                            hits = random.randint(2, 3)
+                            for i in range(hits):
+                                logs = attack_logic(actor, enemy, weapons=wep)
+                                narrate_battle(logs, actor, enemy)
+                                if enemy['hp'] <= 0: break
+                        else:
+                            # 默认武器绝技处理
+                            logs = attack_logic(actor, enemy, weapons=wep)
+                            narrate_battle(logs, actor, enemy)
+                    else:
+                        logs = attack_logic(actor, enemy, weapons=None)
+                        narrate_battle(logs, actor, enemy)
+
             else:
-                print(f"🚫 {Colors.RED}逃跑失败！被 {enemy['name']} 拦住了！{Colors.END}")
-                player_acted = True  # 逃跑失败也算行动过，会挨打
+                # 敌人回合
+                print(f"\n{Colors.RED}[敌方回合 - {enemy['name']}]{Colors.END}")
+                time.sleep(0.5)
+                # 随机选择一个存活的队员
+                living_party = [p for p in Relo.party if p['hp'] > 0]
+                if living_party:
+                    target = random.choice(living_party)
+                    enemy_logs = attack_logic(enemy, target, weapons=None)
+                    narrate_battle(enemy_logs, target, enemy)
 
-        # --- 无效输入 ---
-        else:
-            print("❌ 无效的指令，请重新输入。")
-            continue  # 跳过本次循环，重新选择
-
-        # =================================================
-        # 胜利判定 (玩家行动后)
-        # =================================================
+        # 战斗结算与清理
         if enemy['hp'] <= 0:
-            print(f"\n🎉 胜利！打败了 {enemy['name']}！")
-            exp_gain = enemy.get('exp', 0)
-            player['exp'] += exp_gain
-            print(f"   获得经验: {exp_gain}")
+            break
 
-            # 升级
-            check_level_up(player)
-
-            # print(f"恭喜升级~，目前等级为 {player['level']}")
-
-            # 掉落逻辑
-            loot_list = enemy.get('loot', [])
-            dropped_items = []
-
-            # 1. 正常随机掉落
-            for loot in loot_list:
-                # 幸运加成：也就是你可以给 player 加一个 luck 属性，这里先简单处理
-                # 比如：BOSS 战掉落率翻倍
-                chance_multiplier = 1.0
-                if enemy['max_hp'] >= 500:  # 简单的 BOSS 判定
-                    chance_multiplier = 1.5
-
-                if random.random() < (loot['chance'] * chance_multiplier):
-                    dropped_items.append(loot['item'])
-
-            # 2. 保底机制 (Bad Luck Protection)
-            # 如果什么都没掉，且怪物有掉落列表
-            if not dropped_items and loot_list:
-                if random.random() < 0.5:
-                    # 假设 loot_list 是按稀有度排的，那我们可能要取 chance 最大的
-                    best_chance_item = max(loot_list, key=lambda x: x['chance'])
-                    print(f"   (保底触发) 运气不好，但你还是在尸体上翻到了点东西...")
-                    dropped_items.append(best_chance_item['item'])
-
-            # 3. 结算进背包
-            for item_name in dropped_items:
-                real_item = get_item_data_by_name(item_name)
-                if real_item:
-                    print(f"   🎁 战利品！发现了 [{item_name}]")
-                    add_item_to_bag(player, real_item)
-
-            # 战斗结束清理状态
-            StatusSystem.clear_status(player)
-            return True
-
-        # =================================================
-        # CASE C: 怪物行动阶段 (后手)
-        # 如果玩家先动了，且怪物还没死，且怪物这回合还没动过(即非先手)
-        # =================================================
-        if player_first and player_acted:
-            print(f"\n{Colors.RED}[敌方回合]{Colors.END}")
-            time.sleep(0.5)
-
-            # 1. 检查控制
-            is_skip, msg = StatusSystem.check_control(enemy)
-            if is_skip:
-                print(f"   {msg} (跳过攻击)")
-            else:
-                # 2. 怪物攻击
-                enemy_logs = attack_logic(enemy, player, weapons=None)
-                # 3. AI 播报
-                narrate_battle(enemy_logs, player, enemy)
-
-            if player['hp'] <= 0:
-                print(f"\n☠️ 胜败乃兵家常事...")
-                return False
-
-        # =================================================
-        # 回合结束结算阶段 (Turn End Phase)
-        # =================================================
-        print(f"\n--- 回合结算 ---")
-
-        # 1. 结算异常状态 (燃烧、中毒、HOT)
-        p_logs = StatusSystem.resolve_turn_end(player)
-        for l in p_logs: print(f"   (你) {l}")
-
-        e_logs = StatusSystem.resolve_turn_end(enemy)
-        for l in e_logs: print(f"   (敌) {l}")
-
-        # 2. 结算 Buff 持续时间 (力量药剂等)
-        if 'buffs' in player and player['buffs']:
-            for buff in player['buffs'][:]:  # 切片复制遍历，防止删除出错
-                buff['duration'] -= 1
-                if buff['duration'] <= 0:
-                    print(f"   📉 [{buff['name']}] 的效果消失了。")
-                    player['buffs'].remove(buff)
-
-        # 3. 再次检查死亡 (因为可能被烧死/毒死)
-        if player['hp'] <= 0:
-            print(f"\n☠️ 你倒在了异常状态的折磨下...")
+        if Relo.hero['hp'] <= 0:
+            print(f"\n☠️ 勇士阵亡了...")
             return False
 
-        if enemy['hp'] <= 0:
-            print(f"\n🎉 {enemy['name']} 痛苦地倒下了！(异常状态击杀)")
-            # 这里简单处理，如果毒死也给经验，逻辑同上
-            player['exp'] += enemy.get('exp', 0)
-            check_level_up(player)
-            # 掉落略...
-            return True
+        # --- 回合结算 ---
+        print(f"\n--- 回合结算 ---")
+        for actor in [p for p in Relo.party if p['hp'] > 0] + [enemy]:
+            logs = StatusSystem.resolve_turn_end(actor)
+            for l in logs: print(f"   ({actor['name']}) {l}")
+
+            if 'buffs' in actor and actor['buffs']:
+                for buff in actor['buffs'][:]:
+                    buff['duration'] -= 1
+                    if buff['duration'] <= 0:
+                        print(f"    {actor['name']} 的 [{buff['name']}] 效果消失了。")
+                        actor['buffs'].remove(buff)
+
+        if Relo.hero['hp'] <= 0:
+            print(f"\n☠️ 勇士在异常状态中阵亡了...")
+            return False
 
         turn += 1
+
+    # 胜利结算
+    if enemy['hp'] <= 0:
+        print(f"\n 胜利！打败了 {enemy['name']}！")
+        exp_gain = enemy.get('exp', 0)
+        Relo.hero['exp'] += exp_gain  # 经验暂时全给勇士
+        print(f"   勇士获得经验: {exp_gain}")
+
+        gold_range = enemy.get('gold', [0, 0])
+        gold_dropped = random.randint(gold_range[0], gold_range[1])
+        if gold_dropped > 0:
+            Relo.hero['gold'] = Relo.hero.get('gold', 0) + gold_dropped
+            print(f"   💰 获得金币: {gold_dropped}")
+
+        # 检查升级
+        old_level = Relo.hero.get('level', 1)
+        check_level_up(Relo.hero)
+        new_level = Relo.hero.get('level', 1)
+
+        # 如果勇士升级了，给所有存活的伙伴也升一级
+        if new_level > old_level:
+            levels_gained = new_level - old_level
+            scale = 1.15  # 和主角一致的成长倍率
+            for p in Relo.party:
+                if p != Relo.hero and p['hp'] > 0:
+                    p['level'] = p.get('level', old_level) + levels_gained
+                    
+                    for _ in range(levels_gained):
+                        p['max_hp'] = int(p['max_hp'] * scale)
+                        p['max_mp'] = int(p.get('max_mp', 50) * scale)
+                        p['base_atk'] = max(int(p['base_atk'] * scale), p['base_atk'] + 1)
+                        p['def'] = max(int(p.get('def', 5) * scale), p.get('def', 5) + 1)
+                        p['spd'] = max(int(p.get('spd', 10) * scale), p.get('spd', 10) + 1)
+                        
+                    p['hp'] = p['max_hp']
+                    p['mp'] = p['max_mp']
+                    print(f"    伙伴 {p['name']} 也升级了！(Lv.{p['level']}) 属性全面提升，并恢复了全部状态！")
+
+        # 掉落逻辑
+        loot_list = enemy.get('loot', [])
+        dropped_items = []
+        for loot in loot_list:
+            chance_multiplier = 1.5 if enemy.get('max_hp', 0) >= 500 else 1.0
+            if random.random() < (loot['chance'] * chance_multiplier):
+                dropped_items.append(loot['item'])
+
+        if not dropped_items and loot_list and random.random() < 0.3:
+            best_chance_item = max(loot_list, key=lambda x: x['chance'])
+            print(f"   (保底触发) 运气不好，但你还是在尸体上翻到了点东西...")
+            dropped_items.append(best_chance_item['item'])
+
+        for item_name in dropped_items:
+            real_item = get_item_data_by_name(item_name)
+            if real_item:
+                print(f"    战利品！发现了 [{item_name}]")
+                add_item_to_bag(Relo.hero, real_item)
+
+        for p in Relo.party:
+            StatusSystem.clear_status(p)
+        return True

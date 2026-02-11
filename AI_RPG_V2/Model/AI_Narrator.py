@@ -52,14 +52,18 @@ def narrate_battle(log_text, player, enemy):
     【角色设定】你是一位西方魔法世界小说的金牌作家。
     【任务】根据下方的【战斗数据】，写一段 100字以内 的精彩打斗描写。
     
+    【参战角色身份】
+    - {player.get('name', '玩家')}: {player.get('job', '物理近战勇士')}
+    - {enemy.get('name', '怪物')}: 怪物
+
     【当前战局】：{context_hint}
 
     【要求】
-    1. 动作感：不要只写“造成了伤害”，要写“剑锋划破空气”、“重重砸在盾牌上”。
+    1. 动作感：请先判断【战斗数据】中是谁在攻击，然后根据它的身份描写动作。如果是法师，必须写咒语、法杖、元素魔法轰击；如果是刺客，写匕首或暗杀；如果是近战勇士，写刀剑盾牌；如果是怪物，写撕咬或撞击。**绝对不要出现法师拿剑砍人这种不符合人设的低级错误！**
     2. 画面感：加入光影、声音、血液等细节描写。
     3. 准确性：如果数据里有“暴击”，描述必须震撼；如果是“Miss”，描述要滑稽或惊险。
     4. 情绪共鸣：**必须**体现【当前战局】中描述的氛围（如敌人的恐惧、玩家的绝望反击）。
-    5. 结尾：必须包含 (造成xx点伤害) 或 (剩余HP:xx) 的数值提示。
+    5. 结尾：必须在末尾附带【战斗数据】中给出的真实数值（例如造成伤害、剩余HP等），**绝对不能自己瞎编数值**。
 
     【战斗数据】：
     {log_text}
@@ -100,7 +104,7 @@ def generate_monster_intro(monster_name):
     prompt = f"你扮演一只{monster_name}，对勇者说一句只有20字的挑衅台词，语气要符合该怪物的特征（比如凶狠、阴险或呆萌）。不要带引号。"
 
     # 先打印名字前缀，不换行 (end="")
-    print(f"👿 {monster_name}: “", end="")
+    print(f" {monster_name}: “", end="")
     sys.stdout.flush()
 
     full_text = ""
@@ -114,6 +118,35 @@ def generate_monster_intro(monster_name):
                 full_text += content
     except Exception as e:
         print(f"(吼叫声卡住了...) {e}")
+
+    # 打印结束的引号并换行
+    print("”\n")
+    return full_text
+
+
+def generate_merchant_intro(merchant_name):
+    """
+    生成商人开场白
+    :param merchant_name:
+    :return:
+    """
+    prompt = f"你现在的身份是一位来自世界各地的{merchant_name}，对勇者说一句只有20字左右的台词，但是语气要要符合角色性格（比如崇拜、可爱、呆萌，也可以是油滑、吹牛）。不要带引号。"
+
+    # 先打印名字前缀，不换行 (end="")
+    print(f" {merchant_name}: “", end="")
+    sys.stdout.flush()
+
+    full_text = ""
+    try:
+        # 使用流式接口
+        for chunk in llm.stream([HumanMessage(content=prompt)]):
+            content = chunk.content
+            if content:
+                # 调用打字机效果，速度稍微慢一点更有压迫感 (0.05)
+                stream_print(content, speed=0.05)
+                full_text += content
+    except Exception as e:
+        print(f"(商人晕倒了...) {e}")
 
     # 打印结束的引号并换行
     print("”\n")

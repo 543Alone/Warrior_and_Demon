@@ -10,5 +10,3 @@ from Battle import Round
 
 if __name__ == '__main__':
     Round.main_game_loop()
-
-

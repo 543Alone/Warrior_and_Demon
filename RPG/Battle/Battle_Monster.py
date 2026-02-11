@@ -101,6 +101,12 @@ def start_battle(player, enemy_template,current_weapon):
             print(f"\n🎉 胜利！打败了 {enemy['name']}！")
             player['exp'] += enemy.get('exp', 0)
             print(f"   获得经验: {enemy.get('exp', 0)}")
+            
+            gold_range = enemy.get('gold', [0, 0])
+            gold_dropped = random.randint(gold_range[0], gold_range[1])
+            if gold_dropped > 0:
+                player['gold'] = player.get('gold', 0) + gold_dropped
+                print(f"   💰 获得金币: {gold_dropped}")
 
             # 升级
             check_level_up(player)

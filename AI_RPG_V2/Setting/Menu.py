@@ -11,10 +11,14 @@
 def equip_menu(player):
     """专门用来换装备的菜单函数"""
     print("\n" + "=" * 20)
-    print("【🎒 背包 & 装备】")
+    print("【背包 & 装备】")
+
+    # 获取当前职业
+    cur_job = player.get('job', '战士')
 
     # --- 1. 武器部分 ---
-    my_weapons = [item for item in player['bag'] if 'atk' in item]
+    my_weapons = [item for item in player['bag'] if
+                  'atk' in item and cur_job in item.get('usable_by', ['战士', '刺客', '法师', '牧师', '精灵'])]
     # 获取当前身上的装备
     cur_w_name = player['equipped_weapon']['name']
 
@@ -32,16 +36,17 @@ def equip_menu(player):
             if choice.isdigit():
                 idx = int(choice)
                 if 0 <= idx < len(my_weapons):
-                    # 【修改点】直接修改字典内的键值
+                    # 直接修改字典内的键值
                     player['equipped_weapon'] = my_weapons[idx]
-                    print(f"✅ 已装备: {player['equipped_weapon']['name']}")
+                    print(f"已装备: {player['equipped_weapon']['name']}")
         except:
             pass
 
     print("-" * 20)
 
     # --- 2. 防具部分 ---
-    my_armors = [item for item in player['bag'] if 'def' in item]
+    my_armors = [item for item in player['bag'] if
+                 'def' in item and cur_job in item.get('usable_by', ['战士', '刺客', '法师', '牧师', '精灵'])]
     cur_a_name = player['equipped_armor']['name']
 
     if not my_armors:
@@ -58,9 +63,9 @@ def equip_menu(player):
             if choice.isdigit():
                 idx = int(choice)
                 if 0 <= idx < len(my_armors):
-                    # 【修改点】直接修改字典内的键值
+                    # 直接修改字典内的键值
                     player['equipped_armor'] = my_armors[idx]
-                    print(f"✅ 已装备: {player['equipped_armor']['name']}")
+                    print(f"已装备: {player['equipped_armor']['name']}")
         except:
             pass
 

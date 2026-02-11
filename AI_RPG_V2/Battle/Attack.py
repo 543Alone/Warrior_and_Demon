@@ -45,8 +45,13 @@ class CombatEngine:
         multiplier = 1.0
         armor = character.get('equipped_armor')
         if armor:
-            # 例如 spd = -0.15，则倍率变成 0.85
             multiplier += armor.get('spd', 0.0)
+
+        # Buff 修正
+        if 'buffs' in character:
+            for buff in character['buffs']:
+                if buff['type'] == 'spd':
+                    multiplier += buff['value']
 
         return max(1, int(base_spd * multiplier))
 
@@ -59,7 +64,7 @@ class CombatEngine:
         if weapon:
             hit_chance = weapon.get('hit_rate', hit_chance)
 
-        # ✅ [新增] 加上命中 Buff (敏捷药剂)
+        # 加上命中 Buff (敏捷药剂)
         if 'buffs' in attacker:
             for buff in attacker['buffs']:
                 if buff['type'] == 'hit':
@@ -77,8 +82,15 @@ class CombatEngine:
         if speed_diff > 0:
             dodge_bonus = min(speed_diff * self.config["SPD_DODGE_RATIO"], self.config["MAX_DODGE"])
 
-            # 这里不需要打印，太啰嗦，但为了调试你可以取消注释
+            # 这里不需要打印，太啰嗦，调试可以取消注释
             # logs.append(f"   (速度差 {speed_diff} 带来 {int(dodge_bonus*100)}% 闪避率)")
+
+        # 锻造闪避词条
+        armor = defender.get('equipped_armor')
+        if armor and 'affixes' in armor:
+            for af in armor['affixes']:
+                if af['type'] == 'dodge':
+                    dodge_bonus += af['value']
 
         # 4. 调用防具的特殊效果
         hit_malus = ArmorEffectSystem.get_hit_rate_modifier(defender)
@@ -95,12 +107,13 @@ class CombatEngine:
         if roll > final_hit_rate:
             # 区分是速度躲的，还是装备特效干扰的 (可选优化)
             if hit_malus > 0 and roll <= (hit_chance + hit_malus):
-                # 如果原本能打中(roll < hit)，但因为速度快(roll > final)导致没打中
-                logs.append(f"   🌫️ {defender['name']} 的装备干扰了攻击判断！")
+                logs.append(f"    {defender['name']} 的装备干扰了攻击判断！")
             elif speed_diff > 0:
-                logs.append(f"   ⚡ {defender['name']} 凭借惊人的速度闪避成功！")
+                logs.append(f"   {defender['name']} 凭借惊人的速度闪避成功！")
             else:
-                logs.append(f"   🚫 {attacker['name']} 攻击未命中 (Miss)")
+                logs.append(f"   {attacker['name']} 攻击未命中 (Miss)")
+
+            logs.append(f"   {defender['name']} 剩余 HP: {defender['hp']}")
             return False
 
         return True
@@ -111,7 +124,7 @@ class CombatEngine:
         :return: logs (str) 战斗日志
         """
         logs = []
-        logs.append(f"   \n⚔️  {attacker['name']} 发起了攻击！")
+        logs.append(f"   \n  {attacker['name']} 发起了攻击！")
 
         weapon = weapon_override if weapon_override else attacker.get('equipped_weapon')
         if weapon:
@@ -129,8 +142,8 @@ class CombatEngine:
         if defender['hp'] < 0: defender['hp'] = 0
 
         crit_txt = f" {Colors.YELLOW}💥 暴击!{Colors.END}" if is_crit else ""
-        logs.append(f"   ➡️  击中 {defender['name']}！{crit_txt} 造成 {final_dmg} 点伤害。")
-        logs.append(f"   🩸 {defender['name']} 剩余 HP: {defender['hp']}")
+        logs.append(f"     击中 {defender['name']}！{crit_txt} 造成 {final_dmg} 点伤害。")
+        logs.append(f"    {defender['name']} 剩余 HP: {defender['hp']}")
 
         # 4. 触发特效
         self._apply_effects(attacker, defender, weapon, final_dmg, logs)
@@ -144,12 +157,27 @@ class CombatEngine:
         if weapon:
             total_atk += weapon.get('atk', 0)
 
+        # 锻造武器词条解析
+        bonus_crit_rate = 0.0
+        bonus_crit_dmg = 0.0
+        if weapon and 'affixes' in weapon:
+            for af in weapon['affixes']:
+                if af['type'] == 'atk_percent':
+                    total_atk = total_atk * (1 + af['value'])
+                elif af['type'] == 'crit_rate':
+                    bonus_crit_rate += af['value']
+                elif af['type'] == 'crit_dmg':
+                    bonus_crit_dmg += af['value']
+
         # 加上攻击 Buff
         if 'buffs' in attacker:
             for buff in attacker['buffs']:
                 if buff['type'] == 'atk':
                     total_atk += buff['value']
-                    # logs.append(f"   (Buff加成: 攻+{buff['value']})")
+                elif buff['type'] == 'crit_rate':
+                    bonus_crit_rate += buff['value']
+                elif buff['type'] == 'crit_dmg':
+                    bonus_crit_dmg += buff['value']
 
         # 圣剑特效
         if weapon and weapon.get('effect') == "demon_slayer_multiplier_2.5" and defender.get('name') == "魔王":
@@ -162,15 +190,32 @@ class CombatEngine:
         # 暴击
         is_crit = False
         multiplier = 1.0
-        if random.random() < self.config["CRIT_RATE"]:
+        if random.random() < (self.config["CRIT_RATE"] + bonus_crit_rate):
             is_crit = True
-            multiplier = self.config["CRIT_DMG"]
+            multiplier = self.config["CRIT_DMG"] + bonus_crit_dmg
 
         # 防御计算
         def_val = defender.get('def', 0)
         # 加上防具防御值
-        if defender.get('equipped_armor'):
-            def_val += defender['equipped_armor'].get('def', 0)
+        armor = defender.get('equipped_armor')
+        if armor:
+            def_val += armor.get('def', 0)
+
+        # 锻造防具百分比防御词条
+        if armor and 'affixes' in armor:
+            def_percent_bonus = 0.0
+            for af in armor['affixes']:
+                if af['type'] == 'def_percent':
+                    def_percent_bonus += af['value']
+            def_val = def_val * (1 + def_percent_bonus)
+
+        # 防御 buff/debuff
+        if 'buffs' in defender:
+            for buff in defender['buffs']:
+                if buff['type'] == 'def':
+                    def_val += buff['value']
+                elif buff['type'] == 'def_percent':
+                    def_val = def_val * (1 + buff['value'])
         # 破甲特效
         if weapon and weapon.get('effect') == "ignore_def":
             def_val = 0
@@ -190,6 +235,30 @@ class CombatEngine:
         :param logs: 日志列表
         :return:  无
         """
+        # 特效系统
+        bonus_lifesteal = 0.0
+        if weapon and 'affixes' in weapon:
+            for af in weapon['affixes']:
+                if af['type'] == 'lifesteal':
+                    bonus_lifesteal += af['value']
+
+        hp_regen = 0
+        armor = defender.get('equipped_armor')
+        if armor and 'affixes' in armor:
+            for af in armor['affixes']:
+                if af['type'] == 'hp_regen':
+                    hp_regen += af['value']
+
+        if bonus_lifesteal > 0:
+            heal = int(dmg * bonus_lifesteal)
+            if heal > 0:
+                attacker['hp'] = min(attacker.get('max_hp', 999), attacker['hp'] + heal)
+                logs.append(f"   吸血词条触发！恢复 {heal} 生命！")
+
+        if hp_regen > 0 and defender['hp'] > 0:
+            defender['hp'] = min(defender.get('max_hp', 999), defender['hp'] + int(hp_regen))
+            logs.append(f"   防具复苏词条触发！回复 {int(hp_regen)} 生命！")
+
         if weapon and weapon.get('effect'):
             eff = weapon['effect']
 
@@ -197,11 +266,11 @@ class CombatEngine:
             if eff == "hemophagia":
                 heal = int(dmg * 0.3)
                 attacker['hp'] += heal
-                logs.append(f"   🩸 嗜血！恢复 {heal} 生命！")
+                logs.append(f"   嗜血！恢复 {heal} 生命！")
 
             # 机械键盘
             elif eff == "noise":
-                logs.append("   🔊 咔哒咔哒！精神攻击！")
+                logs.append("   咔哒咔哒！精神攻击！")
 
             # 异常状态 (自动对接 StatusSystem)
             elif eff in StatusSystem.CONFIG:
@@ -218,5 +287,6 @@ default_engine = CombatEngine()
 
 def attack_logic(attacker, defender, weapons=None):
     return default_engine.process_attack(attacker, defender, weapons)
+
 
 GAME_CONFIG = CombatEngine.DEFAULT_CONFIG

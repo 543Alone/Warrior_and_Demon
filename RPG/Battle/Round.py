@@ -20,6 +20,8 @@ from RPG.Setting.Style import Colors
 from RPG.Place.Hover import wander_action
 from RPG.Battle.Death_penalty import Death_enalty
 from RPG.Setting.Use_items import use_item
+from RPG.Setting.Shop import buy_menu, sell_menu
+from RPG.Setting.Forge import forge_menu
 
 
 def main_game_loop():
@@ -44,6 +46,12 @@ def main_game_loop():
         print("4. 🔍 在周围徘徊 (Explore)")
         if location_data.get("is_boss_room"):
             print(f"9. ⚔️ {Colors.RED}决战魔王！{Colors.END}")
+        if Relo.current_location == "商业街":
+            print("5. 🛒 访问道具店 (Buy)")
+            print("6. 💰 出售物品 (Sell)")
+            print("7. 🔨 访问铁匠铺 (Forge)")
+        if Relo.current_location == "村长家":
+            print("8. 💬 和村长交谈 (Talk)")
 
         choice = input("请选择: ")
 
@@ -197,6 +205,22 @@ def main_game_loop():
             # Hover 内部已经处理了 Death_enalty，这里只需要判断如果死了退出循环或者怎么处理
             # 其实 wander_action 里的 Death_enalty 执行完后，玩家血量还是0，
             # 下一次循环 location 可能变回新手村了
+
+        # 选项 5, 6, 7: 商业街功能
+        elif choice == '5' and Relo.current_location == "商业街":
+            buy_menu(Relo.hero)
+        elif choice == '6' and Relo.current_location == "商业街":
+            sell_menu(Relo.hero)
+        elif choice == '7' and Relo.current_location == "商业街":
+            forge_menu(Relo.hero)
+            
+        # 选项 8: 村长家功能
+        elif choice == '8' and Relo.current_location == "村长家":
+            print("\n村长：年轻人，村子外面的史莱姆越来越多了。多去铁匠铺提升一下装备吧！")
+            if Relo.hero['hp'] < Relo.hero['max_hp']:
+                print("村长看你受了伤，施展了治愈术！")
+                Relo.hero['hp'] = Relo.hero['max_hp']
+                print("✅ 你的生命值已恢复满！")
 
         # 选项 9: BOSS战
         elif choice == "9" and location_data.get("is_boss_room"):

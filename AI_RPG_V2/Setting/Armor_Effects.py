@@ -84,7 +84,7 @@ class ArmorEffectSystem:
 
             # 荆棘反伤
             if eff == "reflect_damage" and damage_taken > 0:
-                reflect = max(1,int(damage_taken * 0.2))
+                reflect = max(1, int(damage_taken * 0.2))
                 if reflect > 0:
                     attacker['hp'] -= reflect
                     logs.append(f"   🌵 荆棘背心刺伤了对手，造成 {reflect} 点反伤！")
@@ -109,4 +109,3 @@ class ArmorEffectSystem:
                     if heal < 1: heal = 1
                     attacker['hp'] += heal
                     logs.append(f"   🧛 鲜血披风吸取了 {heal} 点生命...")
-
