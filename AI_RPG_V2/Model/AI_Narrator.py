@@ -118,3 +118,31 @@ def generate_monster_intro(monster_name):
     # 打印结束的引号并换行
     print("”\n")
     return full_text
+
+def generate_merchant_intro(merchant_name):
+    """
+    生成商人开场白
+    :param merchant_name:
+    :return:
+    """
+    prompt =f"你现在的身份是一位来自世界各地的{merchant_name}，对勇者说一句只有20字左右的台词，但是语气要要符合角色性格（比如崇拜、可爱、呆萌，也可以是油滑、吹牛）。不要带引号。"
+
+    # 先打印名字前缀，不换行 (end="")
+    print(f"👿 {merchant_name}: “", end="")
+    sys.stdout.flush()
+
+    full_text = ""
+    try:
+        # 使用流式接口
+        for chunk in llm.stream([HumanMessage(content=prompt)]):
+            content = chunk.content
+            if content:
+                # 调用打字机效果，速度稍微慢一点更有压迫感 (0.05)
+                stream_print(content, speed=0.05)
+                full_text += content
+    except Exception as e:
+        print(f"(商人晕倒了...) {e}")
+
+    # 打印结束的引号并换行
+    print("”\n")
+    return full_text

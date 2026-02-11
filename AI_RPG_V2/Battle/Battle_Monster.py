@@ -190,7 +190,7 @@ def start_battle(player, enemy_template, current_weapon):
 
             # 1. 正常随机掉落
             for loot in loot_list:
-                # 幸运加成：也就是你可以给 player 加一个 luck 属性，这里先简单处理
+                # 幸运加成：也就是可以给 player 加一个 luck 属性，这里先简单处理
                 # 比如：BOSS 战掉落率翻倍
                 chance_multiplier = 1.0
                 if enemy['max_hp'] >= 500:  # 简单的 BOSS 判定
@@ -202,7 +202,7 @@ def start_battle(player, enemy_template, current_weapon):
             # 2. 保底机制 (Bad Luck Protection)
             # 如果什么都没掉，且怪物有掉落列表
             if not dropped_items and loot_list:
-                if random.random() < 0.5:
+                if random.random() < 0.3:
                     # 假设 loot_list 是按稀有度排的，那我们可能要取 chance 最大的
                     best_chance_item = max(loot_list, key=lambda x: x['chance'])
                     print(f"   (保底触发) 运气不好，但你还是在尸体上翻到了点东西...")
@@ -271,7 +271,6 @@ def start_battle(player, enemy_template, current_weapon):
             # 这里简单处理，如果毒死也给经验，逻辑同上
             player['exp'] += enemy.get('exp', 0)
             check_level_up(player)
-            # 掉落略...
             return True
 
         turn += 1
