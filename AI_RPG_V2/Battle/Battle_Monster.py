@@ -97,8 +97,20 @@ def start_battle(player, enemy_template, current_weapon):
                             print(f"  [{i}] {item['name']}")
                         item_cmd = input("> ")
                         if item_cmd.isdigit():
-                            if use_item(Relo.hero, int(item_cmd), enemy=enemy):
-                                break
+                            item_idx = int(item_cmd)
+                            if 0 <= item_idx < len(Relo.hero.get('bag', [])):
+                                if len(Relo.party) > 1:
+                                    print(f"请选择使用对象: 1. 勇士  2. {Relo.party[1]['name']}")
+                                    tgt = input("> ")
+                                    target_p = Relo.party[1] if tgt == '2' else Relo.hero
+                                else:
+                                    target_p = Relo.hero
+                                    
+                                if use_item(Relo.hero, item_idx, enemy=enemy, target_override=target_p):
+                                    break
+                            else:
+                                print("❌ 无效的物品序号。")
+                                continue
                         else:
                             continue
                     else:
@@ -159,10 +171,14 @@ def start_battle(player, enemy_template, current_weapon):
                 act = decision.get('action')
                 target_name = decision.get('target_name', enemy['name'])
 
-                # MP 检查 (如果释放了非普通攻击技能，消耗 20 MP)
+                # MP 检查
+                cost_map = {"attack": 0, "heal": 20, "buff": 20, "debuff": 20, "shield": 20, 
+                            "ragnarok": 60, "shadow_strike": 20, "holy_light": 50, "wind_arrow": 30}
+                required_mp = cost_map.get(act, 20)
+                
                 if act != 'attack':
-                    if actor.get('mp', 0) >= 20:
-                        actor['mp'] -= 20
+                    if actor.get('mp', 0) >= required_mp:
+                        actor['mp'] -= required_mp
                     else:
                         print(f"   ( MP不足，{actor['name']} 改为普通攻击！)")
                         act = "attack"
@@ -204,8 +220,7 @@ def start_battle(player, enemy_template, current_weapon):
                     if act not in ["attack", "heal", "buff", "debuff", "shield"]:
                         print(f"    {actor['name']} 释放了武器绝技：【{act}】！")
 
-                        if act == "ragnarok" and actor.get('mp', 0) >= 40:
-                            actor['mp'] -= 40
+                        if act == "ragnarok":
                             print("    诸神的黄昏降临，毁天灭地的一击！")
                             # 增加临时攻击力
                             original_atk = actor['base_atk']
@@ -214,8 +229,7 @@ def start_battle(player, enemy_template, current_weapon):
                             actor['base_atk'] = original_atk
                             narrate_battle(logs, actor, enemy)
 
-                        elif act == "shadow_strike" and actor.get('mp', 0) >= 20:
-                            actor['mp'] -= 20
+                        elif act == "shadow_strike":
                             print("    遁入暗影，一击必杀！")
                             if 'buffs' not in actor: actor['buffs'] = []
                             actor['buffs'].append(
@@ -223,16 +237,14 @@ def start_battle(player, enemy_template, current_weapon):
                             logs = attack_logic(actor, enemy, weapons=wep)
                             narrate_battle(logs, actor, enemy)
 
-                        elif act == "holy_light" and actor.get('mp', 0) >= 50:
-                            actor['mp'] -= 50
+                        elif act == "holy_light":
                             print("    大天使之杖闪耀，降下神圣之光！")
                             for p in [x for x in Relo.party if x['hp'] > 0]:
                                 heal = 150
                                 p['hp'] = min(p.get('max_hp', 100), p['hp'] + heal)
                                 print(f"    {p['name']} 恢复了 {heal} 点生命值！")
 
-                        elif act == "wind_arrow" and actor.get('mp', 0) >= 30:
-                            actor['mp'] -= 30
+                        elif act == "wind_arrow":
                             print("    穿风神弓拉满，箭矢如狂风暴雨！")
                             hits = random.randint(2, 3)
                             for i in range(hits):

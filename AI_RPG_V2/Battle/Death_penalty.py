@@ -17,7 +17,12 @@ def Death_enalty():
 
     # --- 复活逻辑 ---
     Relo.current_location = "新手村"  # 强制送回新手村
-    hero['hp'] = hero['max_hp']  # 满血复活
+    
+    # 全队复活并恢复状态
+    for p in Relo.party:
+        p['hp'] = p.get('max_hp', 100)
+        if 'max_mp' in p:
+            p['mp'] = p['max_mp']
 
     # 死亡惩罚：扣除 50% 当前经验
     lost_exp = int(hero['exp'] / 2)

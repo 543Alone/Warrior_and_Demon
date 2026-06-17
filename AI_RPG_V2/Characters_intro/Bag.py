@@ -35,18 +35,21 @@ def add_item_to_bag(player, new_item):
     if 'quantity' not in item_to_store:
         item_to_store['quantity'] = 1
 
-    # 检查背包里是否已有同名物品
-    for item in player['bag']:
-        if item['name'] == new_item['name']:
-            # 防止把带锻造词条的装备和白板装备叠在一起！
-            # 只有当两者的 affixes 完全一致（通常都是没有）才允许堆叠
-            if str(item.get('affixes', [])) == str(item_to_store.get('affixes', [])):
-                current_qty = item.get('quantity', 1)
-                add_qty = item_to_store.get('quantity', 1)
+    # 检查背包里是否已有同名物品 (装备类不可叠加)
+    is_equippable = 'atk' in item_to_store or 'def' in item_to_store
+    
+    if not is_equippable:
+        for item in player['bag']:
+            if item['name'] == new_item['name']:
+                # 防止把带锻造词条的装备和白板装备叠在一起！
+                # 只有当两者的 affixes 完全一致（通常都是没有）才允许堆叠
+                if str(item.get('affixes', [])) == str(item_to_store.get('affixes', [])):
+                    current_qty = item.get('quantity', 1)
+                    add_qty = item_to_store.get('quantity', 1)
 
-                item['quantity'] = current_qty + add_qty
-                print(f"    {item['name']} 数量 +{add_qty} (当前: {item['quantity']})")
-                return
+                    item['quantity'] = current_qty + add_qty
+                    print(f"    {item['name']} 数量 +{add_qty} (当前: {item['quantity']})")
+                    return
 
     # 没找到，将拷贝后的对象放入背包
     player['bag'].append(item_to_store)

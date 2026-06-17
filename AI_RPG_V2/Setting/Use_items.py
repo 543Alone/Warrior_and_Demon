@@ -10,12 +10,13 @@
 from Characters_intro import Relo
 
 
-def use_item(player, item_index, enemy=None):
+def use_item(player, item_index, enemy=None, target_override=None):
     """
     使用背包的物品
-    :param player: 玩家对象
+    :param player: 玩家对象 (提供背包)
     :param item_index: 物品在背包的索引
     :param enemy: 敌方对象，用于攻击性道具
+    :param target_override: 指定物品作用的目标，若无则默认作用于 player
     """
     if item_index < 0 or item_index >= len(player['bag']):
         print("❌ 找不到这个物品。")
@@ -23,6 +24,8 @@ def use_item(player, item_index, enemy=None):
 
     item = player['bag'][item_index]
     item_type = item.get('type', 'unknown')
+    
+    target = target_override if target_override else player
 
     # 1. 装备类
     if 'atk' in item or 'def' in item:
@@ -33,34 +36,34 @@ def use_item(player, item_index, enemy=None):
 
     # 2. 回血类 (Heal)
     if item_type == 'heal':
-        if player['hp'] >= player['max_hp']:
-            print("❌ 你现在精神焕发，吃不下了！")
+        if target['hp'] >= target['max_hp']:
+            print(f"❌ {target['name']} 现在精神焕发，吃不下了！")
             return False
 
         recover = item.get('value', 0)
         # 支持百分比恢复，例如 '30%'
         if isinstance(recover, str) and recover.endswith('%'):
             pct = float(recover.strip('%')) / 100.0
-            recover = int(player['max_hp'] * pct)
+            recover = int(target['max_hp'] * pct)
             
-        player['hp'] = min(player['max_hp'], player['hp'] + recover)
-        print(f"😋 你吃掉了 [{item['name']}]")
-        print(f"   恢复 {recover} 点生命 (HP: {player['hp']}/{player['max_hp']})")
+        target['hp'] = min(target['max_hp'], target['hp'] + recover)
+        print(f"😋 [{target['name']}] 吃掉了 [{item['name']}]")
+        print(f"   恢复 {recover} 点生命 (HP: {target['hp']}/{target['max_hp']})")
         used_success = True
 
     # 2.5 回蓝类 (Restore MP)
     elif item_type == 'restore_mp':
-        if 'max_mp' not in player:
-            print("❌ 你连魔力都没有，喝这个干嘛？")
+        if 'max_mp' not in target:
+            print(f"❌ {target['name']} 连魔力都没有，喝这个干嘛？")
             return False
-        if player['mp'] >= player['max_mp']:
-            print("❌ 你现在的魔力已经满溢了！")
+        if target['mp'] >= target['max_mp']:
+            print(f"❌ {target['name']} 现在的魔力已经满溢了！")
             return False
 
         recover = item.get('value', 0)
-        player['mp'] = min(player['max_mp'], player['mp'] + recover)
-        print(f"😋 你喝下了 [{item['name']}]")
-        print(f"   💧 恢复 {recover} 点法力 (MP: {player['mp']}/{player['max_mp']})")
+        target['mp'] = min(target['max_mp'], target['mp'] + recover)
+        print(f"😋 [{target['name']}] 喝下了 [{item['name']}]")
+        print(f"   💧 恢复 {recover} 点法力 (MP: {target['mp']}/{target['max_mp']})")
         used_success = True
 
     # 2.6 回城卷轴 (Teleport)
@@ -81,26 +84,26 @@ def use_item(player, item_index, enemy=None):
             
         removed = []
         # 检查新版状态系统
-        if 'statuses' in player:
+        if 'statuses' in target:
             # 定义咖啡能解的状态：睡眠、麻痹、冰冻
             target_effects = ['sleep', 'paralyze', 'freeze']
-            # 找出玩家当前有的这些状态
-            to_remove = [k for k in player['statuses'] if k in target_effects]
+            # 找出当前有的这些状态
+            to_remove = [k for k in target['statuses'] if k in target_effects]
 
             for k in to_remove:
-                del player['statuses'][k]
+                del target['statuses'][k]
                 removed.append(k)
 
         if removed:
-            print(f"   ☕ 喝下 [{item['name']}]，精神抖擞！解除了: {','.join(removed)}")
+            print(f"   ☕ [{target['name']}] 喝下 [{item['name']}]，精神抖擞！解除了: {','.join(removed)}")
         else:
-            print(f"   ☕ 喝下 [{item['name']}]，味道不错，但好像没发生什么特别的。")
+            print(f"   ☕ [{target['name']}] 喝下 [{item['name']}]，味道不错，但好像没发生什么特别的。")
 
         used_success = True
 
     # 4. Buff 类 (力量/敏捷)
     elif item_type.startswith('buff_'):
-        if 'buffs' not in player: player['buffs'] = []
+        if 'buffs' not in target: target['buffs'] = []
 
         # 解析类型：buff_atk -> atk, buff_hit -> hit
         buff_type = item_type.split('_')[1]
@@ -116,7 +119,7 @@ def use_item(player, item_index, enemy=None):
             'value': item['value'],
             'duration': real_duration + 1  # +1 抵消当回合消耗
         }
-        player['buffs'].append(buff)
+        target['buffs'].append(buff)
 
         if buff_type == 'atk': 
             desc = "攻击力"
@@ -128,8 +131,8 @@ def use_item(player, item_index, enemy=None):
             desc = "神秘属性"
             val_str = f"+{item['value']}"
 
-        print(f"   咕嘟咕嘟... [{item['name']}] 生效！")
-        print(f"   ✨ {desc} {val_str} (持续 {raw_duration} 回合)")
+        print(f"   咕嘟咕嘟... [{target['name']}] 喝下了 [{item['name']}]！")
+        print(f"   ✨ [{target['name']}] 的 {desc} {val_str} (持续 {raw_duration} 回合)")
         used_success = True
     # 5. 伤害类 (Grenade)
     elif item_type == 'damage':

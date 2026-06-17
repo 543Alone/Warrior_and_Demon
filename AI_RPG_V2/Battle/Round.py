@@ -184,14 +184,31 @@ def main_game_loop():
                     print(f"   [{i}] {item['name']}{qty_str} {tag}")
 
             print("════════════════════════════")
-            print("输入 [序号] 使用物品 | 'e' 换装备 | 'q' 返回")
+            print("输入 [序号] 使用物品 | 'e' 给勇士换装 | 'e2' 给伙伴换装 | 'q' 返回")
             sub = input("> ")
 
             if sub == 'e':
                 equip_menu(hero)
+            elif sub == 'e2':
+                if len(Relo.party) > 1:
+                    equip_menu(Relo.party[1])
+                else:
+                    print("❌ 你目前没有伙伴！")
             elif sub.isdigit():
-                # 尝试使用物品
-                use_item(hero, int(sub))
+                # 尝试使用物品，询问目标
+                item_idx = int(sub)
+                if 0 <= item_idx < len(Relo.hero['bag']):
+                    if len(Relo.party) > 1:
+                        print(f"请选择使用对象: 1. 勇士  2. {Relo.party[1]['name']}")
+                        tgt = input("> ")
+                        if tgt == '2':
+                            use_item(hero, item_idx, target_override=Relo.party[1])
+                        else:
+                            use_item(hero, item_idx, target_override=hero)
+                    else:
+                        use_item(hero, item_idx, target_override=hero)
+                else:
+                    print("❌ 无效的物品序号。")
 
         elif choice == '4':
             # 徘徊
